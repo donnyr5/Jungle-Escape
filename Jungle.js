@@ -40,11 +40,10 @@
             this.shapes = {
                 sun: new defs.Subdivision_Sphere(4),
                 planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-                runner: new defs.Subdivision_Sphere(4),
+                runner: new Shape_From_File("assets/character.obj"),
                 cube: new defs.Cube(3,3),
                 horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
                 tree_stump: new Shape_From_File("assets/treestump.obj"),
-                character: new Shape_From_File("assets/character.obj"),
             };
 
             // *** Materials
@@ -202,7 +201,7 @@
                 //person
                 let character_transform = Mat4.identity(); 
                 character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)); 
-                this.shapes.character.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
+                this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
                 
                 if (this.paused){
                     //paused screen
