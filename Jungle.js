@@ -29,8 +29,11 @@ export class Jungle extends Scene {
         }
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+
         this.runner_position = Mat4.identity();
-        this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        this.runner_target_position = Mat4.identity();
+        this.runner_interpoalte_count = 0;
+
         this.context = null;
         this.program_state = null;
 
@@ -41,10 +44,12 @@ export class Jungle extends Scene {
     }
 
     move_left(){
-        this.runner_position = this.runner_position.times(Mat4.translation(-5,0,0));
+        this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
+        this.runner_interpoalte_count = -5;
     }
     move_right(){
-        this.runner_position = this.runner_position.times(Mat4.translation(5,0,0));
+        this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
+        this.runner_interpoalte_count = 5;
     }
 
     make_control_panel() {
@@ -56,7 +61,7 @@ export class Jungle extends Scene {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
         if (!context.scratchpad.controls) {
-            this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
+
             // Define the global camera and projection matrices, which are stored in program_state.
             program_state.set_camera(this.initial_camera_location);
         }
@@ -88,7 +93,16 @@ export class Jungle extends Scene {
         // planet_1_transform = planet_1_transform.times(Mat4.rotation(t,0,1,0)).times(Mat4.translation(5,0,0));
         // this.shapes.planet_1.draw(context, program_state, planet_1_transform, this.materials.planet_1);
 
-
+        //need to interpolate
+        if (this.runner_interpoalte_count > 0) {
+            this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
+            this.runner_interpoalte_count--;
+        }
+        else if (this.runner_interpoalte_count < 0) {
+            this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
+            this.runner_interpoalte_count++;
+        }
+            
         this.shapes.runner.draw(context,program_state, this.runner_position, this.materials.sun);
 
 
