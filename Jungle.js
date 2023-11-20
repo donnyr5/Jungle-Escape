@@ -1,4 +1,5 @@
 import {defs, tiny} from './examples/common.js';
+import { Shape_From_File } from './examples/obj-file-demo.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, Texture, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
@@ -42,7 +43,7 @@ export class Jungle extends Scene {
             runner: new defs.Subdivision_Sphere(4),
             cube: new defs.Cube(3,3),
             horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
-            tree_stump: new Cube(), 
+            tree_stump: new Shape_From_File("assets/treestump.obj"),
         };
 
         // *** Materials
@@ -62,7 +63,7 @@ export class Jungle extends Scene {
         }
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
-        this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-200));
+        this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170));
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
 
@@ -198,7 +199,7 @@ export class Jungle extends Scene {
         for (let i=0; i< len_stump_list -1; i++){
             this.tree_stumps[i].z += this.speed;   // 0.1 toward runner
             tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i].x, 0, this.tree_stumps[i].z)); 
-            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#9cfff2')})); 
+            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
         }
 
         }
