@@ -1,39 +1,47 @@
 import {defs, tiny} from './examples/common.js';
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, Texture, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
+
+const {Textured_Phong} = defs
 
 export class Jungle extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
-
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
+        
+        const horizon_row_op = (s, p) => p ? Mat4.translation(0, .2, 0).times(p.to4(1)).to3() : vec3(-50, 0, -50);
+        const horizon_col_op = (t, p) => Mat4.translation(.2, 0, 0).times(p.to4(1)).to3();
         this.shapes = {
             sun: new defs.Subdivision_Sphere(4),
             planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-
             runner: new defs.Subdivision_Sphere(4),
+            cube: new defs.Cube(3,3),
+            horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
         };
 
         // *** Materials
+        const bump = new defs.Fake_Bump_Map(1);
         this.materials = {
             sun: new Material(new defs.Phong_Shader(),
             {ambient: 1, diffusivity: 1, color: hex_color("#ffffff")}),
-
             planet_1: new Material(new defs.Phong_Shader(),
             {ambient: 0, diffusivity: 1, color: hex_color("#808080"), specularity: 0}),
-
-            //        (Requirement 4)
+            horizon: new Material(new Texture_Scroll_X(), {
+       
+                ambient: .6,
+                texture: new Texture("assets/background.jpeg", "NEAREST")
+            }),
         }
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
-
+        this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
         this.runner_position = Mat4.identity();
         this.runner_target_position = Mat4.identity();
         this.runner_interpoalte_count = 0;
-
+        this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-200));
         this.context = null;
         this.program_state = null;
 
@@ -58,14 +66,14 @@ export class Jungle extends Scene {
         this.key_triggered_button("left", ["a"], () => this.move_left());  }
 
     display(context, program_state) {
+
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
         if (!context.scratchpad.controls) {
 
             // Define the global camera and projection matrices, which are stored in program_state.
             program_state.set_camera(this.initial_camera_location);
-        }
-
+        } 
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
     
@@ -85,15 +93,6 @@ export class Jungle extends Scene {
         const light_position = vec4(0, 0, 0, 1);
         program_state.lights = [new Light(light_position, sun_color, 10 ** sun_radius)];
 
-        // Draw sun 
-        // this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun.override({color: sun_color}));
-
-        // //DRAWING PLANETS:
-        // var planet_1_transform = model_transform;
-        // planet_1_transform = planet_1_transform.times(Mat4.rotation(t,0,1,0)).times(Mat4.translation(5,0,0));
-        // this.shapes.planet_1.draw(context, program_state, planet_1_transform, this.materials.planet_1);
-
-        //need to interpolate
         if (this.runner_interpoalte_count > 0) {
             this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
             this.runner_interpoalte_count--;
@@ -102,8 +101,8 @@ export class Jungle extends Scene {
             this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
             this.runner_interpoalte_count++;
         }
-            
-        this.shapes.runner.draw(context,program_state, this.runner_position, this.materials.sun);
+        this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
+        this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
 
 
         }
@@ -299,5 +298,24 @@ class Ring_Shader extends Shader {
             float scalar = sin(18.01 * distance(point_position.xyz, center.xyz));
             gl_FragColor = scalar * vec4(0.6078, 0.3961, 0.098, 1.0);
         }`;
+    }
+}
+class Texture_Scroll_X extends Textured_Phong {
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            varying vec2 f_tex_coord;
+            uniform sampler2D texture;
+            uniform float animation_time;
+            
+            void main(){
+                // Sample the texture image in the correct place:
+                vec2 temp = f_tex_coord;
+                temp.x = temp.x-0.01 * mod(animation_time, 20.0);
+                vec4 tex_color = texture2D(texture, temp);
+                if( tex_color.w < .01 ) discard;
+                gl_FragColor = vec4( ( tex_color.xyz + shape_color.xyz ) * ambient, shape_color.w * tex_color.w ); 
+                                                                         // Compute the final color with contributions from lights:
+                gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
+        } `;
     }
 }
