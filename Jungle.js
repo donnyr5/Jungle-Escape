@@ -13,6 +13,8 @@ export class Jungle extends Scene {
         this.shapes = {
             sun: new defs.Subdivision_Sphere(4),
             planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
+
+            runner: new defs.Subdivision_Sphere(4),
         };
 
         // *** Materials
@@ -38,18 +40,17 @@ export class Jungle extends Scene {
         this.alive = false;
     }
 
+    move_left(){
+        this.runner_position = this.runner_position.times(Mat4.translation(-5,0,0));
+    }
+    move_right(){
+        this.runner_position = this.runner_position.times(Mat4.translation(5,0,0));
+    }
+
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => this.initial_camera_location);
-        this.new_line();
-        this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
-        this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
-        this.new_line();
-        this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
-        this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
-        this.new_line();
-        this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
-    }
+        this.key_triggered_button("right", ["d"], () => this.move_right());
+        this.key_triggered_button("left", ["a"], () => this.move_left());  }
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
@@ -80,16 +81,17 @@ export class Jungle extends Scene {
         program_state.lights = [new Light(light_position, sun_color, 10 ** sun_radius)];
 
         // Draw sun 
-        this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun.override({color: sun_color}));
+        // this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun.override({color: sun_color}));
 
-        //we need to make rotation so that each planet goes slower than the previous one.
-        //just use t
+        // //DRAWING PLANETS:
+        // var planet_1_transform = model_transform;
+        // planet_1_transform = planet_1_transform.times(Mat4.rotation(t,0,1,0)).times(Mat4.translation(5,0,0));
+        // this.shapes.planet_1.draw(context, program_state, planet_1_transform, this.materials.planet_1);
 
 
-        //DRAWING PLANETS:
-        var planet_1_transform = model_transform;
-        planet_1_transform = planet_1_transform.times(Mat4.rotation(t,0,1,0)).times(Mat4.translation(5,0,0));
-        this.shapes.planet_1.draw(context, program_state, planet_1_transform, this.materials.planet_1);
+        this.shapes.runner.draw(context,program_state, this.runner_position, this.materials.sun);
+
+
         }
 }
 class Gouraud_Shader extends Shader {
