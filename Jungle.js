@@ -29,6 +29,59 @@
         }
     }
 
+    class RectangularPrism extends Shape {
+        constructor(length = 2, width = 1, height = 1) {
+            super("position", "normal");
+    
+            // Half dimensions for easier calculations
+            var halfLength = length / 2;
+            var halfWidth = width / 2;
+            var halfHeight = height / 2;
+    
+            // Adjust the vertex positions based on length, width, and height
+            this.arrays.position = Vector3.cast(
+                [-halfWidth, -halfHeight, -halfLength], [halfWidth, -halfHeight, -halfLength], [-halfWidth, -halfHeight, halfLength], [halfWidth, -halfHeight, halfLength], // Bottom face vertices
+                [halfWidth, halfHeight, -halfLength], [-halfWidth, halfHeight, -halfLength], [halfWidth, halfHeight, halfLength], [-halfWidth, halfHeight, halfLength],     // Top face vertices
+                [-halfWidth, -halfHeight, -halfLength], [-halfWidth, -halfHeight, halfLength], [-halfWidth, halfHeight, -halfLength], [-halfWidth, halfHeight, halfLength], // Left face vertices
+                [halfWidth, -halfHeight, halfLength], [halfWidth, -halfHeight, -halfLength], [halfWidth, halfHeight, halfLength], [halfWidth, halfHeight, -halfLength],     // Right face vertices
+                [-halfWidth, -halfHeight, halfLength], [halfWidth, -halfHeight, halfLength], [-halfWidth, halfHeight, halfLength], [halfWidth, halfHeight, halfLength],     // Front face vertices
+                [halfWidth, -halfHeight, -halfLength], [-halfWidth, -halfHeight, -halfLength], [halfWidth, halfHeight, -halfLength], [-halfWidth, halfHeight, -halfLength]); // Back face vertices
+    
+            // Normals should be the same as they are still aligned with the axes
+            this.arrays.normal = Vector3.cast(
+                [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0],
+                [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0],
+                [-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [-1, 0, 0],
+                [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0],
+                [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1],
+                [0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]);
+    
+            // Indices remain the same as the cube
+            this.indices.push(0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6, 8, 9, 10, 9, 11, 10, 12, 13,
+                14, 13, 15, 14, 16, 17, 18, 17, 19, 18, 20, 21, 22, 21, 23, 22);
+        }
+    }
+
+    function boxesCollide3D(box1, box2) {
+        // Each box is defined by top left front (x, y, z) and dimensions (width, height, depth)
+        return (box1.x < box2.x + box2.width &&
+                box1.x + box1.width > box2.x &&
+                box1.y < box2.y + box2.height &&
+                box1.y + box1.height > box2.y &&
+                box1.z < box2.z + box2.depth &&
+                box1.z + box1.depth > box2.z);
+    }
+    
+    // Helper function to multiply a matrix and a point
+function multiplyMatrixAndPoint(matrix, point) {
+    let result = [0, 0, 0];
+    for (let i = 0; i < 3; i++) {
+        result[i] = matrix[i][0] * point[0] + matrix[i][1] * point[1] + matrix[i][2] * point[2];
+    }
+    return result;
+}
+    
+
     export class Jungle extends Scene {
         constructor() {
             // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
@@ -42,6 +95,9 @@
                 planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
                 runner: new defs.Subdivision_Sphere(4),
                 cube: new defs.Cube(3,3),
+                runner_hitbox: new RectangularPrism(.40,1,4.2),
+                stump_hitbox1: new RectangularPrism(4.2,1.4,0.75),
+                stump_hitbox2: new RectangularPrism(3.8,2,0.75),
                 horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
                 tree_stump: new Shape_From_File("assets/treestump.obj"),
                 character: new Shape_From_File("assets/character.obj"),
@@ -73,6 +129,7 @@
             this.runner_target_position = Mat4.identity();
             this.runner_interpolate_count = 0;
             this.runner_lane = 0;
+            this.runner_position_x = 0;
 
             this.context = null;
             this.program_state = null;
@@ -88,6 +145,17 @@
             this.current_z = -10;
             this.next_z = -225;
             this.tree_stumps = []; 
+
+            //for testing
+            this.TESTING = false;
+        }
+
+        rotate_camera_1(){
+            this.initial_camera_location = Mat4.look_at(vec3(0, 1, -8), vec3(0, -1, 0), vec3(0, 2, 0));
+        }
+
+        rotate_camera_2(){
+            this.initial_camera_location = Mat4.look_at(vec3(0, 12, 1), vec3(0, 2, 0), vec3(0, 2, 0));
         }
 
         move_left(){
@@ -95,6 +163,7 @@
                 this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
                 this.runner_interpolate_count -= 5;   
                 this.runner_lane--;
+                this.runner_position_x--;
             }
         
         }
@@ -103,6 +172,7 @@
                 this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
                 this.runner_interpolate_count += 5;
                 this.runner_lane++;
+                this.runner_position_x++;
             }
         }
 
@@ -124,7 +194,7 @@
                 // adds coordiantes to an array 
             }
             this.tree_stumps.push(current);
-            console.log(this.tree_stumps); 
+            // console.log(this.tree_stumps); 
         }    
 
         generate_all_stump_coordinates(){
@@ -141,6 +211,7 @@
             this.runner_position = Mat4.identity();
             this.runner_target_position = Mat4.identity();
             this.runner_interpolate_count = 0;
+            this.runner_position_x = 0;
             this.runner_lane = 0;
             this.current_z = -10;
             this.next_z = -225;
@@ -150,6 +221,10 @@
             this.started = true;
             this.over = false;
 
+        }
+
+        pause_game(){
+            this.paused = !(this.paused);
         }
 
         end_game(){
@@ -171,8 +246,11 @@
             // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
             this.key_triggered_button("right", ["d"], () => this.move_right());
             this.key_triggered_button("left", ["a"], () => this.move_left());  
-            this.key_triggered_button("start", ["p"], () => this.start_game());
+            this.key_triggered_button("start", ["x"], () => this.start_game());
             this.key_triggered_button("end", ["k"], () => this.end_game());
+            this.key_triggered_button("roate camera 1", ["1"], () => this.rotate_camera_1());
+            this.key_triggered_button("top view", ["2"], () => this.rotate_camera_2());
+            this.key_triggered_button("Pause", ["p"], () => this.pause_game());
         }
 
         display(context, program_state) {
@@ -191,68 +269,166 @@
             const t = program_state.animation_time / 1000;
             let model_transform = Mat4.identity();
 
-            if (!this.started){
-                this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.landingPage);
-            } 
+            //use for collision testing 
+            if (this.TESTING){
+                    //person
+                    let character_transform = Mat4.identity(); 
+                    character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)).times(Mat4.translation(-5,0,0));
+                    this.shapes.character.draw(context, program_state, character_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                                            //move right
+                                            if (this.runner_interpolate_count > 0) {
+                                                this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
+                                                this.runner_interpolate_count--;
+                                            }//move left
+                                            else if (this.runner_interpolate_count < 0) {
+                                                this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
+                                                this.runner_interpolate_count++;
+                                            }
+
+                    let tree_transform = Mat4.identity();
+                    this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#0000FF')})); 
+
+
+                    let hitbox_transform = model_transform;
+                    hitbox_transform = hitbox_transform.times(Mat4.translation(0,0,.3));
+                    this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
+
+                    let hitbox_transform2 = model_transform;
+                    hitbox_transform2 = hitbox_transform2.times(Mat4.rotation((Math.PI-0.5)/2,0,1,0)).times(Mat4.translation(-.2,0,.3));
+                    this.shapes.stump_hitbox2.draw(context,program_state,hitbox_transform2,this.materials.sun);
+                                        
+                    let runner_hitbox_transform = model_transform;
+                    runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(-5,-0.4,0));
+                    this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
+                    //NEED 
+
+
+
+
+            }
+
             else {
 
-                this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
-                // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
-        
-                //person
-                let character_transform = Mat4.identity(); 
-                character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)); 
-                this.shapes.character.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
-                
-                if (this.paused){
-                    //paused screen
-                }
-        
-                if (!this.paused){
-                    //move right
-                if (this.runner_interpolate_count > 0) {
-                    this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
-                    this.runner_interpolate_count--;
-                }//move left
-                else if (this.runner_interpolate_count < 0) {
-                    this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
-                    this.runner_interpolate_count++;
-                }
-        
-                //handle trees ***************
-                let tree_transform = Mat4.identity(); 
-                let len_stump_list = this.tree_stumps.length;
-        
-                this.timer += this.speed;  
-                this.current_z += this.speed; 
-        
-                //check for new row
-                if (this.current_z >= 16){
-                    this.gen_row_boxes(this.next_z);
-                    this.tree_stumps.shift();
-                    this.current_z = 0;
-                    console.log("removed row and genereated new!");
-                }
-        
-                for (let i=0; i< len_stump_list ; i++){
-                    for (let j =0; j < this.tree_stumps[i].length; j++){
-                        this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
-                        tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
-                        this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
-                        //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
-                        tree_transform = Mat4.identity(); 
-                    }
-                }
+                if (!this.started){
+                    this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.landingPage);
+                } 
+                else {
+    
+                    this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
+                    // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
+            
+                    //person
+                    let character_transform = Mat4.identity(); 
+                    character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)); 
+                    this.shapes.character.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
+                    
+                    if (this.paused){
+                        //paused screen
+                        let tree_transform = Mat4.identity(); 
+                        let len_stump_list = this.tree_stumps.length;
 
-                //handle collisions here
-                //we should only have to check the first 2 rows of tree_stumps to see if there is any overlap
-                for (let i = 0; i < 2; i++){
-                    for (let j =0; j < this.tree_stumps[i].length; j++){
-                        console.log("Hit!");
+                        for (let i=0; i< len_stump_list ; i++){
+                            for (let j =0; j < this.tree_stumps[i].length; j++){
+                                // this.tree_stumps[i][j].z += this.speed;   // NO MOVEMENT WHEN PAUSED.
+                                tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
+                                this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                                //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
+                                tree_transform = Mat4.identity(); 
+                            }
+                        }
                     }
-                }
-                }
-            }
+            
+                    if (!this.paused){
+                        //move right
+                    if (this.runner_interpolate_count > 0) {
+                        this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
+                        this.runner_interpolate_count--;
+                    }//move left
+                    else if (this.runner_interpolate_count < 0) {
+                        this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
+                        this.runner_interpolate_count++;
+                    }
+            
+                    //handle trees ***************
+                    let tree_transform = Mat4.identity(); 
+                    let len_stump_list = this.tree_stumps.length;
+            
+                    this.timer += this.speed;  
+                    this.current_z += this.speed; 
+            
+                    //check for new row
+                    if (this.current_z >= 16){
+                        this.gen_row_boxes(this.next_z);
+                        this.tree_stumps.shift();
+                        this.current_z = 0;
+                        // console.log("removed row and genereated new!");
+                    }
+            
+                    for (let i=0; i< len_stump_list ; i++){
+                        for (let j =0; j < this.tree_stumps[i].length; j++){
+                            this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
+                            tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
+                            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                            //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
+                            tree_transform = Mat4.identity(); 
+                        }
+                    }
+    
+                    //handle collisions here
+                    //we should only have to check the first 2 rows of tree_stumps to see if there is any overlap
+                    for (let i = 0; i < 2; i++){
+                        for (let j =0; j < this.tree_stumps[i].length; j++){
+                            //runner hit box (need to factor in Y change during jump) TOP LEFT
+                            (-0.7 + this.runner_position_x, -0.025 , -2.1) 
+                            let stump1_collision_box = {'x': this.tree_stumps[i][j].x, 'y': -0.025, 'z': 0.3 + this.tree_stumps[i][j].z, 'width': 1.4, 'depth': 4.2,'height': 0.75}
+                            
+                            //stump_hitbox1: 
+                            let runner_collision_box = {'x': -0.5 + this.runner_position_x, 'y': 2.1, 'z': 0.2, 'width': 1, 'depth': 0.4,'height': 4.2}
+
+                            //stump hitbox2
+                            let originalPoint = [ -1, 0.375, 1.9 ];
+                            let angle = (Math.PI - 0.5) / 2;
+
+                            // Rotation matrix for rotation around the Y-axis
+                            let rotationMatrix = [
+                                [Math.cos(angle), 0, Math.sin(angle)],
+                                [0, 1, 0],
+                                [-Math.sin(angle), 0, Math.cos(angle)]
+                            ];
+                            let rotatedPoint = multiplyMatrixAndPoint(rotationMatrix, originalPoint);
+
+                            // Apply translation of stump 2 hitbox 
+                            let translatedPoint = [
+                                rotatedPoint[0] - 0.2 + this.tree_stumps[i][j].x,        //x
+                                rotatedPoint[1],                                         //y
+                                rotatedPoint[2] + 0.3 + this.tree_stumps[i][j].z         //z
+                            ];
+
+                            let stump2_collision_box = {'x': translatedPoint[0], 'y': translatedPoint[1], 'z': translatedPoint[2], 'width': 2, 'depth': 3.8,'height': 0.75};
+                            // console.log(stump2_collision_box);
+
+                            let hitbox_transform = model_transform;
+                            hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z));
+                            this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
+                            
+                            let hitbox_transform2 = model_transform;
+                            hitbox_transform2 = hitbox_transform2.times(Mat4.translation(stump2_collision_box.x, stump2_collision_box.y, stump2_collision_box.z));
+                            this.shapes.stump_hitbox2.draw(context,program_state,hitbox_transform2,this.materials.sun);
+
+                            if (boxesCollide3D(stump1_collision_box,runner_collision_box) || boxesCollide3D(stump2_collision_box,runner_collision_box)){
+                              console.log("Hit!");  
+                            }
+                        }
+                    }//end loop
+
+
+
+                    }//end paused (things that happen when game is going)
+                }// end started
+
+            }//end testing
+
+
         } //end display
     } //end Jungle Class
     class Gouraud_Shader extends Shader {
