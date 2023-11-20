@@ -134,6 +134,7 @@
                     this.runner_lane = 0;
                     this.current_z = -10;
                     this.next_z = -225;
+                    this.speed = 0.3; 
 
                     this.paused = false; 
                     this.alive = true;
@@ -216,7 +217,7 @@
                                     }
                                 }
                             }
-                    
+                 
                             if (!this.paused){
                                 //move right
                             if (this.runner_interpolate_count > 0) {
