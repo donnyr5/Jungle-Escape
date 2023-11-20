@@ -95,8 +95,8 @@ function multiplyMatrixAndPoint(matrix, point) {
                 planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
                 runner: new defs.Subdivision_Sphere(4),
                 cube: new defs.Cube(3,3),
-                runner_hitbox: new RectangularPrism(.40,1,4.2),
-                stump_hitbox1: new RectangularPrism(4.2,1.4,0.75),
+                runner_hitbox: new RectangularPrism(.40,1,3.2),
+                stump_hitbox1: new RectangularPrism(4.2,3.4,0.75),
                 stump_hitbox2: new RectangularPrism(3.8,2,0.75),
                 horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
                 tree_stump: new Shape_From_File("assets/treestump.obj"),
@@ -163,7 +163,6 @@ function multiplyMatrixAndPoint(matrix, point) {
                 this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
                 this.runner_interpolate_count -= 5;   
                 this.runner_lane--;
-                this.runner_position_x--;
             }
         
         }
@@ -172,7 +171,6 @@ function multiplyMatrixAndPoint(matrix, point) {
                 this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
                 this.runner_interpolate_count += 5;
                 this.runner_lane++;
-                this.runner_position_x++;
             }
         }
 
@@ -343,17 +341,19 @@ function multiplyMatrixAndPoint(matrix, point) {
                     if (this.runner_interpolate_count > 0) {
                         this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
                         this.runner_interpolate_count--;
+                        this.runner_position_x++;
                     }//move left
                     else if (this.runner_interpolate_count < 0) {
                         this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
                         this.runner_interpolate_count++;
+                        this.runner_position_x--;
                     }
             
                     //handle trees ***************
                     let tree_transform = Mat4.identity(); 
                     let len_stump_list = this.tree_stumps.length;
             
-                    this.timer += this.speed;  
+                    this.score += this.speed;  
                     this.current_z += this.speed; 
             
                     //check for new row
@@ -379,44 +379,23 @@ function multiplyMatrixAndPoint(matrix, point) {
                     for (let i = 0; i < 2; i++){
                         for (let j =0; j < this.tree_stumps[i].length; j++){
                             //runner hit box (need to factor in Y change during jump) TOP LEFT
-                            (-0.7 + this.runner_position_x, -0.025 , -2.1) 
-                            let stump1_collision_box = {'x': this.tree_stumps[i][j].x, 'y': -0.025, 'z': 0.3 + this.tree_stumps[i][j].z, 'width': 1.4, 'depth': 4.2,'height': 0.75}
+                            let stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': -0.025, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
                             
                             //stump_hitbox1: 
-                            let runner_collision_box = {'x': -0.5 + this.runner_position_x, 'y': 2.1, 'z': 0.2, 'width': 1, 'depth': 0.4,'height': 4.2}
-
-                            //stump hitbox2
-                            let originalPoint = [ -1, 0.375, 1.9 ];
-                            let angle = (Math.PI - 0.5) / 2;
-
-                            // Rotation matrix for rotation around the Y-axis
-                            let rotationMatrix = [
-                                [Math.cos(angle), 0, Math.sin(angle)],
-                                [0, 1, 0],
-                                [-Math.sin(angle), 0, Math.cos(angle)]
-                            ];
-                            let rotatedPoint = multiplyMatrixAndPoint(rotationMatrix, originalPoint);
-
-                            // Apply translation of stump 2 hitbox 
-                            let translatedPoint = [
-                                rotatedPoint[0] - 0.2 + this.tree_stumps[i][j].x,        //x
-                                rotatedPoint[1],                                         //y
-                                rotatedPoint[2] + 0.3 + this.tree_stumps[i][j].z         //z
-                            ];
-
-                            let stump2_collision_box = {'x': translatedPoint[0], 'y': translatedPoint[1], 'z': translatedPoint[2], 'width': 2, 'depth': 3.8,'height': 0.75};
-                            // console.log(stump2_collision_box);
+                            let runner_collision_box = {'x': + this.runner_position_x, 'y': 0, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
 
                             let hitbox_transform = model_transform;
-                            hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z));
+                            hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z + 2));
                             this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
                             
-                            let hitbox_transform2 = model_transform;
-                            hitbox_transform2 = hitbox_transform2.times(Mat4.translation(stump2_collision_box.x, stump2_collision_box.y, stump2_collision_box.z));
-                            this.shapes.stump_hitbox2.draw(context,program_state,hitbox_transform2,this.materials.sun);
-
-                            if (boxesCollide3D(stump1_collision_box,runner_collision_box) || boxesCollide3D(stump2_collision_box,runner_collision_box)){
-                              console.log("Hit!");  
+                            let runner_hitbox_transform = model_transform;
+                            runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(runner_collision_box.x, runner_collision_box.y, runner_collision_box.z));
+                            this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
+                          
+                            if (boxesCollide3D(stump1_collision_box,runner_collision_box)){
+                                console.log("Hit!");  
+                                console.log("Score: ", this.score);
+                                this.stump_collision(); //handles (ends the game for now)
                             }
                         }
                     }//end loop
