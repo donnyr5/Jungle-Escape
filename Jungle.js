@@ -4,6 +4,28 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
+class Cube extends Shape {
+    constructor() {
+        super("position", "normal",);
+        // Loop 3 times (for each axis), and inside loop twice (for opposing cube sides):
+        this.arrays.position = Vector3.cast(
+            [-1, -1, -1], [1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, -1], [-1, 1, -1], [1, 1, 1], [-1, 1, 1],
+            [-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [-1, 1, 1], [1, -1, 1], [1, -1, -1], [1, 1, 1], [1, 1, -1],
+            [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, 1, -1], [-1, 1, -1]);
+            // define all corners of the cube and then when the program runs this part of the code, the program will connect 
+            // the points that you define with a certain order 
+        this.arrays.normal = Vector3.cast(
+            [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0],
+            [-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0],
+            [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]);
+            // defines direction of the surface so program knows which surface to point outwards and in 
+        // Arrange the vertices into a square shape in texture space too:
+        this.indices.push(0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6, 8, 9, 10, 9, 11, 10, 12, 13,
+            14, 13, 15, 14, 16, 17, 18, 17, 19, 18, 20, 21, 22, 21, 23, 22);
+            // order to connect the points that are defined in the arrays position 
+    }
+}
+
 export class Jungle extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
@@ -15,6 +37,7 @@ export class Jungle extends Scene {
             planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
 
             runner: new defs.Subdivision_Sphere(4),
+            tree_stump: new Cube(), 
         };
 
         // *** Materials
@@ -25,10 +48,12 @@ export class Jungle extends Scene {
             planet_1: new Material(new defs.Phong_Shader(),
             {ambient: 0, diffusivity: 1, color: hex_color("#808080"), specularity: 0}),
 
-            //        (Requirement 4)
+            plastic: new Material(new defs.Phong_Shader(),
+            {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+
         }
 
-        this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        this.initial_camera_location = Mat4.look_at(vec3(0, 5, 10), vec3(0, 2, 0), vec3(0, 2, 0));
 
         this.runner_position = Mat4.identity();
         this.runner_target_position = Mat4.identity();
@@ -42,6 +67,8 @@ export class Jungle extends Scene {
         this.velocity = 0;
         this.score = 0;
         this.alive = false;
+        
+        this.tree_stumps = []; 
     }
 
     move_left(){
@@ -60,10 +87,45 @@ export class Jungle extends Scene {
         }
     }
 
+    gen_row_boxes(z_pos) {
+        let x_positions = [-5, 0, 5]; 
+        // array holds 1-2 sub-arrays of coordinates 
+        let random_num_for_stumps = Math.floor(Math.random() * 2) + 1;
+
+
+        for (let i=0; i< random_num_for_stumps; i++){ 
+            // generates a random index 0, 1, 2
+            let random_x_pos_index = Math.floor(Math.random() * 3);
+            // picks out -5, 0, 5 from random index 
+            let random_x_position = x_positions[random_x_pos_index]; 
+            // creates full coordinate scheme 
+            var current = {'x':random_x_position, 'y': 0, 'z': z_pos};
+            // adds coordiantes to an array 
+            this.tree_stumps.push(current);
+        }
+
+        console.log(this.tree_stumps); 
+    }    
+
+    generate_all_stump_coordinates(){
+        this.tree_stumps = [];
+        for (let i = -5; i>=-50; i-=5){
+            this.gen_row_boxes(i); 
+        }
+    }
+
+
+    start_game (){ 
+        this.paused = false; 
+    }
+
+
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
         this.key_triggered_button("right", ["d"], () => this.move_right());
-        this.key_triggered_button("left", ["a"], () => this.move_left());  }
+        this.key_triggered_button("left", ["a"], () => this.move_left());  
+        this.key_triggered_button("generate stumps", ["g"], () => this.generate_all_stump_coordinates());  
+    }
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
@@ -113,6 +175,16 @@ export class Jungle extends Scene {
             
         this.shapes.runner.draw(context,program_state, this.runner_position, this.materials.sun);
 
+        let tree_transform = Mat4.identity(); 
+        let len_stump_list = this.tree_stumps.length;
+        //this.generate_all_stump_coordinates(); 
+        //this.gen_row_boxes(); 
+        for (let i=0; i< len_stump_list -1; i++){
+            let new_x = this.tree_stumps[i].x; 
+            let new_z = this.tree_stumps[i].z; 
+            tree_transform = tree_transform.times(Mat4.translation(new_x,0,new_z)); 
+            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#9cfff2')})); 
+        }
 
         }
 }
