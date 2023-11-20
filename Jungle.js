@@ -53,7 +53,7 @@ export class Jungle extends Scene {
 
         }
 
-        this.initial_camera_location = Mat4.look_at(vec3(0, 5, 10), vec3(0, 2, 0), vec3(0, 2, 0));
+        this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
 
         this.runner_position = Mat4.identity();
         this.runner_target_position = Mat4.identity();
