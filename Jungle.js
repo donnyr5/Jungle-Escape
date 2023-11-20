@@ -32,7 +32,8 @@ export class Jungle extends Scene {
 
         this.runner_position = Mat4.identity();
         this.runner_target_position = Mat4.identity();
-        this.runner_interpoalte_count = 0;
+        this.runner_interpolate_count = 0;
+        this.runner_lane = 0;
 
         this.context = null;
         this.program_state = null;
@@ -44,12 +45,19 @@ export class Jungle extends Scene {
     }
 
     move_left(){
-        this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
-        this.runner_interpoalte_count = -5;
+        if (this.runner_lane == 0 || this.runner_lane == 1) {
+            this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
+            this.runner_interpolate_count -= 5;   
+            this.runner_lane--;
+        }
+       
     }
     move_right(){
-        this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
-        this.runner_interpoalte_count = 5;
+        if (this.runner_lane == 0 || this.runner_lane == -1) {
+            this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
+            this.runner_interpolate_count += 5;
+            this.runner_lane++;
+        }
     }
 
     make_control_panel() {
@@ -93,14 +101,14 @@ export class Jungle extends Scene {
         // planet_1_transform = planet_1_transform.times(Mat4.rotation(t,0,1,0)).times(Mat4.translation(5,0,0));
         // this.shapes.planet_1.draw(context, program_state, planet_1_transform, this.materials.planet_1);
 
-        //need to interpolate
-        if (this.runner_interpoalte_count > 0) {
+        //move right
+        if (this.runner_interpolate_count > 0) {
             this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
-            this.runner_interpoalte_count--;
-        }
-        else if (this.runner_interpoalte_count < 0) {
+            this.runner_interpolate_count--;
+        }//move left
+        else if (this.runner_interpolate_count < 0) {
             this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
-            this.runner_interpoalte_count++;
+            this.runner_interpolate_count++;
         }
             
         this.shapes.runner.draw(context,program_state, this.runner_position, this.materials.sun);
