@@ -44,6 +44,7 @@ export class Jungle extends Scene {
             cube: new defs.Cube(3,3),
             horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
             tree_stump: new Shape_From_File("assets/treestump.obj"),
+            character: new Shape_From_File("assets/character.obj"),
         };
 
         // *** Materials
@@ -202,6 +203,7 @@ export class Jungle extends Scene {
             this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
         }
 
+        
         }
 }
 class Gouraud_Shader extends Shader {
