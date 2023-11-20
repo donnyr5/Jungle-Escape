@@ -63,14 +63,10 @@ export class Jungle extends Scene {
             {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
         }
 
-<<<<<<< HEAD
         this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
         this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170));
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
-=======
-        this.initial_camera_location = Mat4.look_at(vec3(0, 7, 12), vec3(0, 2, 0), vec3(0, 2, 0));
->>>>>>> origin/generate_boxes
 
         this.runner_position = Mat4.identity();
         this.runner_target_position = Mat4.identity();
@@ -202,12 +198,6 @@ export class Jungle extends Scene {
         this.timer += this.speed;
         this.current_z += this.speed;
 
-<<<<<<< HEAD
-        for (let i=0; i< len_stump_list -1; i++){
-            this.tree_stumps[i].z += this.speed;   // 0.1 toward runner
-            tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i].x, 0, this.tree_stumps[i].z)); 
-            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
-=======
         for (let i=0; i< len_stump_list ; i++){
             for (let j =0; j < this.tree_stumps[i].length; j++){
                 this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
@@ -216,10 +206,12 @@ export class Jungle extends Scene {
                 //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
                 tree_transform = Mat4.identity(); 
             }
->>>>>>> origin/generate_boxes
         }
 
-        
+        let character_transform = Mat4.identity(); 
+        character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)); 
+        this.shapes.character.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+
         }
 }
 class Gouraud_Shader extends Shader {
