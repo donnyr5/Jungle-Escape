@@ -83,14 +83,13 @@
             this.shapes = {
                 sun: new defs.Subdivision_Sphere(4),
                 planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-                runner: new defs.Subdivision_Sphere(4),
+                runner: new Shape_From_File("assets/character.obj"),
                 cube: new defs.Cube(3,3),
                 runner_hitbox: new RectangularPrism(.40,1,3.2),
                 stump_hitbox1: new RectangularPrism(4.2,3.4,0.75),
                 stump_hitbox2: new RectangularPrism(3.8,2,0.75),
                 horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
                 tree_stump: new Shape_From_File("assets/treestump.obj"),
-                character: new Shape_From_File("assets/character.obj"),
             };
 
             // *** Materials
@@ -257,6 +256,7 @@
             const t = program_state.animation_time / 1000;
             let model_transform = Mat4.identity();
 
+<<<<<<< HEAD
                 if (!this.started){
                     this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.landingPage);
                 } 
@@ -284,6 +284,58 @@
                                 tree_transform = Mat4.identity(); 
                             }
                         }
+=======
+            if (!this.started){
+                this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.landingPage);
+            } 
+            else {
+
+                this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
+                // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
+        
+                //person
+                let character_transform = Mat4.identity(); 
+                character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)); 
+                this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
+                
+                if (this.paused){
+                    //paused screen
+                }
+        
+                if (!this.paused){
+                    //move right
+                if (this.runner_interpolate_count > 0) {
+                    this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
+                    this.runner_interpolate_count--;
+                }//move left
+                else if (this.runner_interpolate_count < 0) {
+                    this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
+                    this.runner_interpolate_count++;
+                }
+        
+                //handle trees ***************
+                let tree_transform = Mat4.identity(); 
+                let len_stump_list = this.tree_stumps.length;
+        
+                this.timer += this.speed;  
+                this.current_z += this.speed; 
+        
+                //check for new row
+                if (this.current_z >= 16){
+                    this.gen_row_boxes(this.next_z);
+                    this.tree_stumps.shift();
+                    this.current_z = 0;
+                    console.log("removed row and genereated new!");
+                }
+        
+                for (let i=0; i< len_stump_list ; i++){
+                    for (let j =0; j < this.tree_stumps[i].length; j++){
+                        this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
+                        tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
+                        this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                        //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
+                        tree_transform = Mat4.identity(); 
+>>>>>>> def63d3a9d61c58b66950a7a0ce1007cbef76552
                     }
             
                     if (!this.paused){
