@@ -62,14 +62,10 @@ export class Jungle extends Scene {
             {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
         }
 
-<<<<<<< HEAD
         this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
         this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170));
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
-=======
-        this.initial_camera_location = Mat4.look_at(vec3(0, 7, 12), vec3(0, 2, 0), vec3(0, 2, 0));
->>>>>>> origin/generate_boxes
 
         this.runner_position = Mat4.identity();
         this.runner_target_position = Mat4.identity();
@@ -85,8 +81,9 @@ export class Jungle extends Scene {
         this.alive = false;
 
         this.timer = 0;
-        this.speed = 0.1;
-        this.current_z = 0;
+        this.speed = .3;
+        this.current_z = -10;
+        this.next_z = -225;
         this.tree_stumps = []; 
     }
 
@@ -145,6 +142,7 @@ export class Jungle extends Scene {
         this.key_triggered_button("right", ["d"], () => this.move_right());
         this.key_triggered_button("left", ["a"], () => this.move_left());  
         this.key_triggered_button("generate stumps", ["g"], () => this.generate_all_stump_coordinates());  
+        this.key_triggered_button("start", ["p"], () => this.start_game());
     }
 
     display(context, program_state) {
@@ -152,37 +150,23 @@ export class Jungle extends Scene {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
         if (!context.scratchpad.controls) {
-
             // Define the global camera and projection matrices, which are stored in program_state.
             program_state.set_camera(this.initial_camera_location);
+            var flashlight_color =  '#FFFFFF';
+            const light_position = vec4(0, 0.5, 0, 1);
+            program_state.lights = [new Light(light_position, hex_color(flashlight_color), 75 )];
         } 
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
-    
         const t = program_state.animation_time / 1000;
-        const yellow = hex_color("#fac91a");
         let model_transform = Mat4.identity();
 
-        let sun_transform = model_transform;
+        this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
+        this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
 
-        // changing size 1-->3
-        var sun_radius = 2 + Math.sin(2 * Math.PI/10 * t);
-        sun_transform = sun_transform.times(Mat4.scale(sun_radius, sun_radius, sun_radius));
+        if (!this.paused){
 
-        // color changing with size
-        var flashlight_color =  '#FFFFFF';
-        const light_position = vec4(0, 0.5, 0, 1);
-        program_state.lights = [new Light(light_position, hex_color(flashlight_color), 75 )];
-
-        // Draw sun 
-        // this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun.override({color: sun_color}));
-
-        // //DRAWING PLANETS:
-        // var planet_1_transform = model_transform;
-        // planet_1_transform = planet_1_transform.times(Mat4.rotation(t,0,1,0)).times(Mat4.translation(5,0,0));
-        // this.shapes.planet_1.draw(context, program_state, planet_1_transform, this.materials.planet_1);
-
-        //move right
+            //move right
         if (this.runner_interpolate_count > 0) {
             this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
             this.runner_interpolate_count--;
@@ -191,34 +175,37 @@ export class Jungle extends Scene {
             this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
             this.runner_interpolate_count++;
         }
-        this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
-        this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
 
         //handle trees ***************
         let tree_transform = Mat4.identity(); 
         let len_stump_list = this.tree_stumps.length;
 
-        this.timer += this.speed;
-        this.current_z += this.speed;
+        this.timer += this.speed;  
+        this.current_z += this.speed; 
 
-<<<<<<< HEAD
-        for (let i=0; i< len_stump_list -1; i++){
-            this.tree_stumps[i].z += this.speed;   // 0.1 toward runner
-            tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i].x, 0, this.tree_stumps[i].z)); 
-            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
-=======
+        if (this.current_z >= 16){
+            this.gen_row_boxes(this.next_z);
+            this.tree_stumps.shift();
+            this.current_z = 0;
+            console.log("removed row and genereated new!");
+        }
+
         for (let i=0; i< len_stump_list ; i++){
             for (let j =0; j < this.tree_stumps[i].length; j++){
                 this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
                 tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
-                this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#9cfff2')})); 
+                this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
                 //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
                 tree_transform = Mat4.identity(); 
             }
->>>>>>> origin/generate_boxes
         }
 
+            
         }
+
+        
+    }
+
 }
 class Gouraud_Shader extends Shader {
     // This is a Shader using Phong_Shader as template
