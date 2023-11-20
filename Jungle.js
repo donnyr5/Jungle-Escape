@@ -67,7 +67,10 @@ export class Jungle extends Scene {
         this.velocity = 0;
         this.score = 0;
         this.alive = false;
-        
+
+        this.timer = 0;
+        this.speed = 0.05;
+        this.current_z = 0;
         this.tree_stumps = []; 
     }
 
@@ -175,14 +178,16 @@ export class Jungle extends Scene {
             
         this.shapes.runner.draw(context,program_state, this.runner_position, this.materials.sun);
 
+        //handle trees ***************
         let tree_transform = Mat4.identity(); 
         let len_stump_list = this.tree_stumps.length;
-        //this.generate_all_stump_coordinates(); 
-        //this.gen_row_boxes(); 
+
+        this.timer += this.speed;
+        this.current_z += this.speed;
+
         for (let i=0; i< len_stump_list -1; i++){
-            let new_x = this.tree_stumps[i].x; 
-            let new_z = this.tree_stumps[i].z; 
-            tree_transform = tree_transform.times(Mat4.translation(new_x,0,new_z)); 
+            this.tree_stumps[i].z += this.speed;   // 0.1 toward runner
+            tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i].x, 0, this.tree_stumps[i].z)); 
             this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#9cfff2')})); 
         }
 
