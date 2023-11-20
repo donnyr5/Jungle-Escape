@@ -63,10 +63,14 @@ export class Jungle extends Scene {
             {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
         }
 
+<<<<<<< HEAD
         this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
         this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170));
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
+=======
+        this.initial_camera_location = Mat4.look_at(vec3(0, 7, 12), vec3(0, 2, 0), vec3(0, 2, 0));
+>>>>>>> origin/generate_boxes
 
         this.runner_position = Mat4.identity();
         this.runner_target_position = Mat4.identity();
@@ -82,7 +86,7 @@ export class Jungle extends Scene {
         this.alive = false;
 
         this.timer = 0;
-        this.speed = 0.05;
+        this.speed = 0.1;
         this.current_z = 0;
         this.tree_stumps = []; 
     }
@@ -105,8 +109,9 @@ export class Jungle extends Scene {
 
     gen_row_boxes(z_pos) {
         let x_positions = [-5, 0, 5]; 
-        // array holds 1-2 sub-arrays of coordinates 
+        // gives either 1 or 2 so that we can render that many number of cubes 
         let random_num_for_stumps = Math.floor(Math.random() * 2) + 1;
+        let current = []
 
 
         for (let i=0; i< random_num_for_stumps; i++){ 
@@ -115,17 +120,17 @@ export class Jungle extends Scene {
             // picks out -5, 0, 5 from random index 
             let random_x_position = x_positions[random_x_pos_index]; 
             // creates full coordinate scheme 
-            var current = {'x':random_x_position, 'y': 0, 'z': z_pos};
+            let current_stump = {'x':random_x_position, 'y': 0, 'z': z_pos};
+            current.push(current_stump)
             // adds coordiantes to an array 
-            this.tree_stumps.push(current);
         }
-
+        this.tree_stumps.push(current);
         console.log(this.tree_stumps); 
     }    
 
     generate_all_stump_coordinates(){
         this.tree_stumps = [];
-        for (let i = -5; i>=-50; i-=5){
+        for (let i = -15; i>=-225; i-=15){
             this.gen_row_boxes(i); 
         }
     }
@@ -197,10 +202,21 @@ export class Jungle extends Scene {
         this.timer += this.speed;
         this.current_z += this.speed;
 
+<<<<<<< HEAD
         for (let i=0; i< len_stump_list -1; i++){
             this.tree_stumps[i].z += this.speed;   // 0.1 toward runner
             tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i].x, 0, this.tree_stumps[i].z)); 
             this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+=======
+        for (let i=0; i< len_stump_list ; i++){
+            for (let j =0; j < this.tree_stumps[i].length; j++){
+                this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
+                tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
+                this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#9cfff2')})); 
+                //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
+                tree_transform = Mat4.identity(); 
+            }
+>>>>>>> origin/generate_boxes
         }
 
         
