@@ -150,10 +150,9 @@ export class Jungle extends Scene {
         sun_transform = sun_transform.times(Mat4.scale(sun_radius, sun_radius, sun_radius));
 
         // color changing with size
-        let rgb_val = (1 + Math.sin(2 * Math.PI/10 * t)) / 2; 
-        var sun_color = color(1, rgb_val, rgb_val, 1);
-        const light_position = vec4(0, 0, 0, 1);
-        program_state.lights = [new Light(light_position, sun_color, 10 ** sun_radius)];
+        var flashlight_color =  '#FFFFFF';
+        const light_position = vec4(0, 0.5, 0, 1);
+        program_state.lights = [new Light(light_position, hex_color(flashlight_color), 75 )];
 
         // Draw sun 
         // this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun.override({color: sun_color}));
