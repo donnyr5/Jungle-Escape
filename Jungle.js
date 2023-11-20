@@ -71,16 +71,6 @@
                 box1.z < box2.z + box2.depth &&
                 box1.z + box1.depth > box2.z);
     }
-    
-    // Helper function to multiply a matrix and a point
-function multiplyMatrixAndPoint(matrix, point) {
-    let result = [0, 0, 0];
-    for (let i = 0; i < 3; i++) {
-        result[i] = matrix[i][0] * point[0] + matrix[i][1] * point[1] + matrix[i][2] * point[2];
-    }
-    return result;
-}
-    
 
     export class Jungle extends Scene {
         constructor() {
@@ -267,46 +257,6 @@ function multiplyMatrixAndPoint(matrix, point) {
             const t = program_state.animation_time / 1000;
             let model_transform = Mat4.identity();
 
-            //use for collision testing 
-            if (this.TESTING){
-                    //person
-                    let character_transform = Mat4.identity(); 
-                    character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)).times(Mat4.translation(-5,0,0));
-                    this.shapes.character.draw(context, program_state, character_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
-                                            //move right
-                                            if (this.runner_interpolate_count > 0) {
-                                                this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
-                                                this.runner_interpolate_count--;
-                                            }//move left
-                                            else if (this.runner_interpolate_count < 0) {
-                                                this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
-                                                this.runner_interpolate_count++;
-                                            }
-
-                    let tree_transform = Mat4.identity();
-                    this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#0000FF')})); 
-
-
-                    let hitbox_transform = model_transform;
-                    hitbox_transform = hitbox_transform.times(Mat4.translation(0,0,.3));
-                    this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
-
-                    let hitbox_transform2 = model_transform;
-                    hitbox_transform2 = hitbox_transform2.times(Mat4.rotation((Math.PI-0.5)/2,0,1,0)).times(Mat4.translation(-.2,0,.3));
-                    this.shapes.stump_hitbox2.draw(context,program_state,hitbox_transform2,this.materials.sun);
-                                        
-                    let runner_hitbox_transform = model_transform;
-                    runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(-5,-0.4,0));
-                    this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
-                    //NEED 
-
-
-
-
-            }
-
-            else {
-
                 if (!this.started){
                     this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.landingPage);
                 } 
@@ -380,17 +330,17 @@ function multiplyMatrixAndPoint(matrix, point) {
                         for (let j =0; j < this.tree_stumps[i].length; j++){
                             //runner hit box (need to factor in Y change during jump) TOP LEFT
                             let stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': -0.025, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
-                            
                             //stump_hitbox1: 
                             let runner_collision_box = {'x': + this.runner_position_x, 'y': 0, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
 
-                            let hitbox_transform = model_transform;
-                            hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z + 2));
-                            this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
+                        //TO DRAW THE HITBOXES TOO
+                            // let hitbox_transform = model_transform;
+                            // hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z + 2));
+                            // this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
                             
-                            let runner_hitbox_transform = model_transform;
-                            runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(runner_collision_box.x, runner_collision_box.y, runner_collision_box.z));
-                            this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
+                            // let runner_hitbox_transform = model_transform;
+                            // runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(runner_collision_box.x, runner_collision_box.y, runner_collision_box.z));
+                            // this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
                           
                             if (boxesCollide3D(stump1_collision_box,runner_collision_box)){
                                 console.log("Hit!");  
@@ -404,8 +354,6 @@ function multiplyMatrixAndPoint(matrix, point) {
 
                     }//end paused (things that happen when game is going)
                 }// end started
-
-            }//end testing
 
 
         } //end display
