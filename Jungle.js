@@ -4,28 +4,29 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
-/*
-Each lane is +- 10 units from the center
-
-
-*/
-
 export class Jungle extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
 
-       // *** Shapes
+        // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
-            runner: new defs.Subdivision_Sphere(4),
+            sun: new defs.Subdivision_Sphere(4),
+            planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
         };
 
         // *** Materials
         this.materials = {
-            test: new Material(new defs.Phong_Shader(),
-            {ambient: 1, diffusivity: 1, color: hex_color("#f30409")}),
+            sun: new Material(new defs.Phong_Shader(),
+            {ambient: 1, diffusivity: 1, color: hex_color("#ffffff")}),
+
+            planet_1: new Material(new defs.Phong_Shader(),
+            {ambient: 0, diffusivity: 1, color: hex_color("#808080"), specularity: 0}),
+
+            //        (Requirement 4)
         }
 
+        this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
         this.runner_position = Mat4.identity();
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
         this.context = null;
@@ -35,23 +36,20 @@ export class Jungle extends Scene {
         this.velocity = 0;
         this.score = 0;
         this.alive = false;
-
     }
 
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        this.key_triggered_button("right", ["d"], () => this.move_right());
-        this.key_triggered_button("left", ["a"], () => this.move_left());
-        // this.key_triggered_button("up", ["w"], () => this.move_up());
+        this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => this.initial_camera_location);
+        this.new_line();
+        this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
+        this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
+        this.new_line();
+        this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
+        this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
+        this.new_line();
+        this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
     }
-
-    move_left() {
-        this.runner_position = this.runner_position.times(Mat4.translation(-10,0,0));
-    }
-    move_right() {
-        this.runner_position = this.runner_position.times(Mat4.translation(10,0,0));
-    }
-
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
@@ -66,13 +64,33 @@ export class Jungle extends Scene {
             Math.PI / 4, context.width / context.height, .1, 1000);
     
         const t = program_state.animation_time / 1000;
-
+        const yellow = hex_color("#fac91a");
         let model_transform = Mat4.identity();
 
-        //should draw runner at the origin.
-        this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.test);
+        let sun_transform = model_transform;
 
-    }
+        // changing size 1-->3
+        var sun_radius = 2 + Math.sin(2 * Math.PI/10 * t);
+        sun_transform = sun_transform.times(Mat4.scale(sun_radius, sun_radius, sun_radius));
+
+        // color changing with size
+        let rgb_val = (1 + Math.sin(2 * Math.PI/10 * t)) / 2; 
+        var sun_color = color(1, rgb_val, rgb_val, 1);
+        const light_position = vec4(0, 0, 0, 1);
+        program_state.lights = [new Light(light_position, sun_color, 10 ** sun_radius)];
+
+        // Draw sun 
+        this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun.override({color: sun_color}));
+
+        //we need to make rotation so that each planet goes slower than the previous one.
+        //just use t
+
+
+        //DRAWING PLANETS:
+        var planet_1_transform = model_transform;
+        planet_1_transform = planet_1_transform.times(Mat4.rotation(t,0,1,0)).times(Mat4.translation(5,0,0));
+        this.shapes.planet_1.draw(context, program_state, planet_1_transform, this.materials.planet_1);
+        }
 }
 class Gouraud_Shader extends Shader {
     // This is a Shader using Phong_Shader as template
