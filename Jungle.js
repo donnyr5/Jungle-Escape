@@ -1,6 +1,6 @@
     import {defs, tiny} from './examples/common.js';
     import { Shape_From_File } from './examples/obj-file-demo.js';
-    import { RectangularPrism, Cube, boxesCollide3D } from './shapes.js';
+    import { RectangularPrism, Cube, boxesCollide3D, Text_Line } from './shapes.js';
 
             const {
                 Vector, Vector3, vec, vec3, vec4, color, Texture, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
@@ -26,6 +26,7 @@
                         stump_hitbox2: new RectangularPrism(3.8,2,0.75),
                         horizon: new defs.Grid_Patch(100, 500, horizon_row_op, horizon_col_op),
                         tree_stump: new Shape_From_File("assets/treestump.obj"),
+                        score_text: new Text_Line(50),
                     };
 
                     // *** Materials
@@ -43,6 +44,11 @@
                         }),
                         plastic: new Material(new defs.Phong_Shader(),
                         {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+
+                        text_image: new Material(new defs.Textured_Phong(1), {
+                            ambient: 1, diffusivity: 0, specularity: 0,
+                            texture: new Texture("assets/text.png")
+                        }),
                     }
 
                     // this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
@@ -247,6 +253,14 @@
 
                                 this.speed+=0.01;
                             }
+
+                            // SCORE ++++++++++++++++++++++++++++++++
+                            let score_transform = Mat4.identity(); 
+                            score_transform = score_transform.times(Mat4.translation(-22,9,-25)).times(Mat4.rotation(0.4,-0.1,0,0)); 
+                            var score_txt = Math.trunc(this.score);
+                            this.shapes.score_text.set_string(score_txt.toString(), context.context);
+                            this.shapes.score_text.draw(context, program_state, score_transform, this.materials.text_image); 
+                            
                     
                             for (let i=0; i< len_stump_list ; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
