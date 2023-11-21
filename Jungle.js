@@ -1,7 +1,6 @@
     import {defs, tiny} from './examples/common.js';
     import { Shape_From_File } from './examples/obj-file-demo.js';
     import { RectangularPrism, Cube, boxesCollide3D } from './shapes.js';
-
             const {
                 Vector, Vector3, vec, vec3, vec4, color, Texture, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
             } = tiny;
@@ -55,15 +54,19 @@
                     this.runner_interpolate_count = 0;
                     this.runner_lane = 0;
                     this.runner_position_x = 0;
+                    this.runner_position_y = 0;
+                    this.isJumping = false;
 
                     this.context = null;
                     this.program_state = null;
                     this.started = false;
+                    this.timer = 0;
 
                     this.paused = true;
                     this.score = 0;
                     this.alive = false;
                     this.over = false;
+
 
                     //speed at which the game plays
                     this.speed = .3;
@@ -82,7 +85,7 @@
                 }
 
                 move_left(){
-                    if (this.runner_lane == 0 || this.runner_lane == 1 && !this.paused) {
+                    if ((this.runner_lane == 0 || this.runner_lane == 1) && !this.paused && this.alive && !this.isJumping) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
                         this.runner_interpolate_count -= 5;   
                         this.runner_lane--;
@@ -90,7 +93,7 @@
                 
                 }
                 move_right(){
-                    if (this.runner_lane == 0 || this.runner_lane == -1 && !this.paused) {
+                    if ((this.runner_lane == 0 || this.runner_lane == -1) && !this.paused && this.alive && !this.isJumping) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
                         this.runner_interpolate_count += 5;
                         this.runner_lane++;
@@ -131,6 +134,7 @@
                     this.runner_target_position = Mat4.identity();
                     this.runner_interpolate_count = 0;
                     this.runner_position_x = 0;
+                    this.runner_position_y = 0;
                     this.runner_lane = 0;
                     this.current_z = -10;
                     this.next_z = -225;
@@ -154,6 +158,14 @@
 
                 }
 
+                jump(){
+                    //if not already jumping and not paused.
+                    if (this.isJumping == false && !this.paused && this.alive){
+                        this.isJumping = true;
+                        console.log("Jumped!");
+                    }
+                }
+
                 //if power up, dont end game yet.
                 stump_collision(){
                     this.end_game();
@@ -169,7 +181,10 @@
                     this.key_triggered_button("roate camera 1", ["1"], () => this.rotate_camera_1());
                     this.key_triggered_button("top view", ["2"], () => this.rotate_camera_2());
                     this.key_triggered_button("Pause", ["p"], () => this.pause_game());
+                    this.key_triggered_button("Jump", [" "], () => this.jump());
                 }
+
+            
 
                 display(context, program_state) {
 
@@ -196,8 +211,6 @@
                             // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
                     
                             //person
-                            let character_transform = Mat4.identity(); 
-                            character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)).times(Mat4.rotation(180, -1, 1, 1)); 
                             this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
                             
                             if (this.paused){
@@ -229,6 +242,23 @@
                                 this.runner_interpolate_count++;
                                 this.runner_position_x--;
                             }
+                            //jump
+                            if (this.isJumping == true){
+                                //fix the jump height.
+                                this.runner_position = this.runner_position.times(Mat4.translation(0,-this.runner_position_y,0));
+                                this.runner_position_y = -5.8 * (this.timer ** 2) + 10 * this.timer;
+                                this.timer += 0.05;
+                                if (this.runner_position_y >= 0){
+                                    this.runner_position = this.runner_position.times(Mat4.translation(0,this.runner_position_y,0));
+                                }
+                                else {
+                                    this.runner_position_y = 0;
+                                    this.isJumping = false;
+                                    this.timer = 0;
+                                    //jump has finished
+                                }
+                            }
+
                     
                             //handle trees ***************
                             let tree_transform = Mat4.identity(); 
@@ -264,7 +294,7 @@
                                     //runner hit box (need to factor in Y change during jump) TOP LEFT.
                                     let stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': -0.025, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
                                     //stump_hitbox1: top left corner, dimensions
-                                    let runner_collision_box = {'x': + this.runner_position_x, 'y': 0, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
+                                    let runner_collision_box = {'x': + this.runner_position_x, 'y': this.runner_position_y, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
 
                                 //TO DRAW THE HITBOXES TOO
                                     // let hitbox_transform = model_transform;
