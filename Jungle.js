@@ -38,16 +38,16 @@
                             texture: new Texture("assets/background.jpeg", "NEAREST")
                         }),
                         landingPage: new Material(new Texture_Scroll_X(), {
-                            ambient: .6,
-                            texture: new Texture("assets/jungle.jpg", "NEAREST")
+                            ambient: 1,
+                            texture: new Texture("assets/jungle-2.jpg", "NEAREST")
                         }),
                         plastic: new Material(new defs.Phong_Shader(),
                         {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
                     }
 
                     // this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
-                    this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170));
-                    this.landingPage_transform = Mat4.identity().times(Mat4.translation(300,200,1)).times(Mat4.scale(50, 50, 1));
+                    this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170))
+                    this.landingPage_transform = Mat4.identity().times(Mat4.translation(0, -20, -100)).times(Mat4.rotation(-13 * Math.PI / 180, 1, 0, 0)).times(Mat4.scale(85,80,1));
                     this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
 
                     this.runner_position = Mat4.identity();
@@ -197,7 +197,7 @@
                     
                             //person
                             let character_transform = Mat4.identity(); 
-                            character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)); 
+                            character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)).times(Mat4.rotation(180, -1, 1, 1)); 
                             this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
                             
                             if (this.paused){
