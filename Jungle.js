@@ -127,7 +127,7 @@
                     }
 
                     //Randomly generate a power up (jump_boost) ~ 1/20 chance
-                     if ( Math.random() > 0.95){
+                     if ( Math.random() > 0.5){
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         let random_x_position = x_positions[random_x_pos_index];
                         let jb = {'x':random_x_position, 'y': 4, 'z': z_pos, 'type': "jump_boost"};
@@ -325,8 +325,14 @@
                             //we should only have to check the first 2 rows of tree_stumps to see if there is any overlap
                             for (let i = 0; i < 2; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
+                                    let stump1_collision_box = {};
                                     //runner hit box (need to factor in Y change during jump) TOP LEFT.
-                                    let stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                    if (this.tree_stumps[i][j].type == "jump_boost"){
+                                        stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                    }
+                                    if (this.tree_stumps[i][j].type == "stump"){
+                                        stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                    }
                                     //stump_hitbox1: top left corner, dimensions
                                     let runner_collision_box = {'x': + this.runner_position_x, 'y': this.runner_position_y, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
 
