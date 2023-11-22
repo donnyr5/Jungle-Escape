@@ -56,7 +56,7 @@
                     this.runner_position_x = 0;
                     this.runner_position_y = 0;
 
-                    this.jump_timer = 0;
+                    this.jump_timer = Infinity;
                     this.isJumping = false;
 
                     this.context = null;
@@ -93,7 +93,7 @@
                 }
 
                 move_left(){
-                    if ((this.runner_lane == 0 || this.runner_lane == 1) && !this.paused && this.alive && !this.isJumping) {
+                    if ((this.runner_lane == 0 || this.runner_lane == 1) && !this.paused && this.alive && (!this.isJumping || this.GRAVITY != -5.8)) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
                         this.runner_interpolate_count -= 5;  
                         this.runner_lane--;
@@ -101,7 +101,7 @@
                 
                 }
                 move_right(){
-                    if ((this.runner_lane == 0 || this.runner_lane == -1) && !this.paused && this.alive && !this.isJumping) {
+                    if ((this.runner_lane == 0 || this.runner_lane == -1) && !this.paused && this.alive && (!this.isJumping || this.GRAVITY != -5.8)) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
                         this.runner_interpolate_count += 5;
                         this.runner_lane++;
@@ -132,11 +132,11 @@
                         let random_x_position = x_positions[random_x_pos_index];
                         let jb = {'x':random_x_position, 'y': 4, 'z': z_pos, 'type': "jump_boost"};
                         current.push(jb);
-                        console.log("jump_boost created!")
+                        // console.log("jump_boost created!")
                      }
 
                     this.tree_stumps.push(current);
-                    console.log(this.tree_stumps); 
+                    // console.log(this.tree_stumps); 
                 }    
 
                 generate_all_stump_coordinates(){
@@ -164,7 +164,7 @@
                     this.over = false;
                     this.speed = this.INITIAL_SPEED;
                     this.GRAVITY = -5.8;
-                    this.jump_timer = 0;
+                    this.jump_timer = Infinity;
                 }
 
                 pause_game(){
@@ -184,7 +184,7 @@
                     //if not already jumping and not paused.
                     if (this.isJumping == false && !this.paused && this.alive){
                         this.isJumping = true;
-                        console.log("Jumped!");
+                        // console.log("Jumped!");
                     }
                 }
 
@@ -272,6 +272,7 @@
                                 //check jump boost
                                 if (t > this.jump_timer){
                                     this.GRAVITY = -5.8;
+                                    console.log("jump boost over!");
                                 }
                                 this.runner_position_y = this.GRAVITY * (this.timer ** 2) + this.JUMP_VELOCITY * this.timer;
                                 this.timer += 0.05;
