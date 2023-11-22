@@ -55,6 +55,8 @@
                     this.runner_lane = 0;
                     this.runner_position_x = 0;
                     this.runner_position_y = 0;
+
+                    this.jump_timer = 0;
                     this.isJumping = false;
 
                     this.context = null;
@@ -67,12 +69,18 @@
                     this.alive = false;
                     this.over = false;
 
+                    //GAME CONSTANT MODIFIERS:
+                    this.INITIAL_SPEED = 0.3
+                    this.TREE_SPACING = 20;
+                    this.GRAVITY = -5.8;
+                    this.JUMP_VELOCITY = 10;
+
 
                     //speed at which the game plays
-                    this.speed = .3;
+                    this.speed = this.INITIAL_SPEED;
                     //used for tree generation
-                    this.current_z = -10;
-                    this.next_z = -225;
+                    this.current_z = -10;   //to start
+                    this.next_z = -15 * this.TREE_SPACING
                     this.tree_stumps = []; 
                 }
 
@@ -87,7 +95,7 @@
                 move_left(){
                     if ((this.runner_lane == 0 || this.runner_lane == 1) && !this.paused && this.alive && !this.isJumping) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
-                        this.runner_interpolate_count -= 5;   
+                        this.runner_interpolate_count -= 5;  
                         this.runner_lane--;
                     }
                 
@@ -103,26 +111,37 @@
                 gen_row_boxes(z_pos) {
                     let x_positions = [-5, 0, 5]; 
                     // gives either 1 or 2 so that we can render that many number of cubes 
-                    let random_num_for_stumps = Math.floor(Math.random() * 2) + 1;
-                    let current = []
+                    let random_num_for_stumps = Math.floor(Math.random() * 2) + 2;
+                    let current = [];
 
+                    //0-3 times
                     for (let i=0; i< random_num_for_stumps; i++){ 
                         // generates a random index 0, 1, 2
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         // picks out -5, 0, 5 from random index 
                         let random_x_position = x_positions[random_x_pos_index]; 
                         // creates full coordinate scheme 
-                        let current_stump = {'x':random_x_position, 'y': 0, 'z': z_pos};
+                        let current_stump = {'x':random_x_position, 'y': 0, 'z': z_pos, 'type': "stump"};
                         current.push(current_stump);
                         // adds coordiantes to an array 
                     }
+
+                    //Randomly generate a power up (jump_boost) ~ 1/20 chance
+                     if ( Math.random() > 0.95){
+                        let random_x_pos_index = Math.floor(Math.random() * 3);
+                        let random_x_position = x_positions[random_x_pos_index];
+                        let jb = {'x':random_x_position, 'y': 4, 'z': z_pos, 'type': "jump_boost"};
+                        current.push(jb);
+                        console.log("jump_boost created!")
+                     }
+
                     this.tree_stumps.push(current);
-                    // console.log(this.tree_stumps); 
+                    console.log(this.tree_stumps); 
                 }    
 
                 generate_all_stump_coordinates(){
                     this.tree_stumps = [];
-                    for (let i = -15; i>=-225; i-=15){
+                    for (let i = -this.TREE_SPACING; i>= (-15*this.TREE_SPACING); i-=this.TREE_SPACING){
                         this.gen_row_boxes(i); 
                     }
                 }
@@ -137,12 +156,15 @@
                     this.runner_position_y = 0;
                     this.runner_lane = 0;
                     this.current_z = -10;
-                    this.next_z = -225;
+                    this.next_z = -15 * this.TREE_SPACING;
 
                     this.paused = false; 
                     this.alive = true;
                     this.started = true;
                     this.over = false;
+                    this.speed = this.INITIAL_SPEED;
+                    this.GRAVITY = -5.8;
+                    this.jump_timer = 0;
                 }
 
                 pause_game(){
@@ -244,9 +266,14 @@
                             }
                             //jump
                             if (this.isJumping == true){
-                                //fix the jump height.
+                                //fix the jump height
                                 this.runner_position = this.runner_position.times(Mat4.translation(0,-this.runner_position_y,0));
-                                this.runner_position_y = -5.8 * (this.timer ** 2) + 10 * this.timer;
+
+                                //check jump boost
+                                if (t > this.jump_timer){
+                                    this.GRAVITY = -5.8;
+                                }
+                                this.runner_position_y = this.GRAVITY * (this.timer ** 2) + this.JUMP_VELOCITY * this.timer;
                                 this.timer += 0.05;
                                 if (this.runner_position_y >= 0){
                                     this.runner_position = this.runner_position.times(Mat4.translation(0,this.runner_position_y,0));
@@ -268,21 +295,28 @@
                             this.current_z += this.speed; 
                     
                             //check for new row
-                            if (this.current_z >= 16){
+                            if (this.current_z >= this.TREE_SPACING){
                                 this.gen_row_boxes(this.next_z);
                                 this.tree_stumps.shift();
                                 this.current_z = 0;
                                 // console.log("removed row and genereated new!");
 
-                                this.speed+=0.01;
+                                this.speed+=0.0075;
                             }
                     
                             for (let i=0; i< len_stump_list ; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
                                     this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
-                                    tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
-                                    this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
-                                    //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
+                                    tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, this.tree_stumps[i][j].y, this.tree_stumps[i][j].z)); 
+
+                                    if ( this.tree_stumps[i][j].type == "stump"){
+                                       this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                                    }
+                                        
+                                    //for now, white ball
+                                    if (this.tree_stumps[i][j].type == "jump_boost"){
+                                        this.shapes.sun.draw(context,program_state, tree_transform, this.materials.sun);
+                                    }
                                     tree_transform = Mat4.identity(); 
                                 }
                             }
@@ -292,7 +326,7 @@
                             for (let i = 0; i < 2; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
                                     //runner hit box (need to factor in Y change during jump) TOP LEFT.
-                                    let stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': -0.025, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                    let stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
                                     //stump_hitbox1: top left corner, dimensions
                                     let runner_collision_box = {'x': + this.runner_position_x, 'y': this.runner_position_y, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
 
@@ -306,9 +340,19 @@
                                     // this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
                                 
                                     if (boxesCollide3D(stump1_collision_box,runner_collision_box)){
-                                        console.log("Hit!");  
-                                        console.log("Score: ", this.score);
-                                        this.stump_collision(); //handles (ends the game for now)
+                                        if (this.tree_stumps[i][j].type == "stump"){
+                                            console.log("Hit!");  
+                                            console.log("Score: ", this.score);
+                                            this.stump_collision(); //handles (ends the game for now)   
+                                        }
+                                        if (this.tree_stumps[i][j].type == "jump_boost") {
+                                            console.log("Boost activated!");
+                                            this.GRAVITY = -3.5;
+                                            this.jump_timer = t + 15;
+                                        }   
+                                        
+                                        // if (this.tree_stumps[i][j].type == "jump_boost")
+                                        
                                     }
                                 }
                             }//end loop
