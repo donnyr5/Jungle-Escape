@@ -1,7 +1,6 @@
     import {defs, tiny} from './examples/common.js';
     import { Shape_From_File } from './examples/obj-file-demo.js';
     import { RectangularPrism, Cube, boxesCollide3D, Text_Line } from './shapes.js';
-
             const {
                 Vector, Vector3, vec, vec3, vec4, color, Texture, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
             } = tiny;
@@ -39,8 +38,8 @@
                             texture: new Texture("assets/background.jpeg", "NEAREST")
                         }),
                         landingPage: new Material(new Texture_Scroll_X(), {
-                            ambient: .6,
-                            texture: new Texture("assets/jungle.jpg", "NEAREST")
+                            ambient: 1,
+                            texture: new Texture("assets/jungle-2.jpg", "NEAREST")
                         }),
                         plastic: new Material(new defs.Phong_Shader(),
                         {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
@@ -52,8 +51,8 @@
                     }
 
                     // this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
-                    this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170));
-                    this.landingPage_transform = Mat4.identity().times(Mat4.translation(300,200,1)).times(Mat4.scale(50, 50, 1));
+                    this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170))
+                    this.landingPage_transform = Mat4.identity().times(Mat4.translation(0, -20, -100)).times(Mat4.rotation(-13 * Math.PI / 180, 1, 0, 0)).times(Mat4.scale(85,80,1));
                     this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
 
                     this.runner_position = Mat4.identity();
@@ -61,21 +60,34 @@
                     this.runner_interpolate_count = 0;
                     this.runner_lane = 0;
                     this.runner_position_x = 0;
+                    this.runner_position_y = 0;
+
+                    this.jump_timer = Infinity;
+                    this.isJumping = false;
 
                     this.context = null;
                     this.program_state = null;
                     this.started = false;
+                    this.timer = 0;
 
                     this.paused = true;
                     this.score = 0;
                     this.alive = false;
                     this.over = false;
 
+                    //GAME CONSTANT MODIFIERS:
+                    this.INITIAL_SPEED = 0.3
+                    this.TREE_SPACING = 30;
+                    this.GRAVITY = -5.8;
+                    this.JUMP_VELOCITY = 10;
+                    this.SPEEDUP_FACTOR = 0.0085;
+
+
                     //speed at which the game plays
-                    this.speed = .3;
+                    this.speed = this.INITIAL_SPEED;
                     //used for tree generation
-                    this.current_z = -10;
-                    this.next_z = -225;
+                    this.current_z = -10;   //to start
+                    this.next_z = -15 * this.TREE_SPACING
                     this.tree_stumps = []; 
                 }
 
@@ -88,15 +100,15 @@
                 }
 
                 move_left(){
-                    if (this.runner_lane == 0 || this.runner_lane == 1 && !this.paused) {
+                    if ((this.runner_lane == 0 || this.runner_lane == 1) && !this.paused && this.alive && (!this.isJumping || this.GRAVITY != -5.8)) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
-                        this.runner_interpolate_count -= 5;   
+                        this.runner_interpolate_count -= 5;  
                         this.runner_lane--;
                     }
                 
                 }
                 move_right(){
-                    if (this.runner_lane == 0 || this.runner_lane == -1 && !this.paused) {
+                    if ((this.runner_lane == 0 || this.runner_lane == -1) && !this.paused && this.alive && (!this.isJumping || this.GRAVITY != -5.8)) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
                         this.runner_interpolate_count += 5;
                         this.runner_lane++;
@@ -106,26 +118,37 @@
                 gen_row_boxes(z_pos) {
                     let x_positions = [-5, 0, 5]; 
                     // gives either 1 or 2 so that we can render that many number of cubes 
-                    let random_num_for_stumps = Math.floor(Math.random() * 2) + 1;
-                    let current = []
+                    let random_num_for_stumps = Math.floor(Math.random() * 2) + 2;
+                    let current = [];
 
+                    //0-3 times
                     for (let i=0; i< random_num_for_stumps; i++){ 
                         // generates a random index 0, 1, 2
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         // picks out -5, 0, 5 from random index 
                         let random_x_position = x_positions[random_x_pos_index]; 
                         // creates full coordinate scheme 
-                        let current_stump = {'x':random_x_position, 'y': 0, 'z': z_pos};
+                        let current_stump = {'x':random_x_position, 'y': 0, 'z': z_pos, 'type': "stump"};
                         current.push(current_stump);
                         // adds coordiantes to an array 
                     }
+
+                    //Randomly generate a power up (jump_boost) ~ 1/20 chance
+                     if ( Math.random() > 0.95){
+                        let random_x_pos_index = Math.floor(Math.random() * 3);
+                        let random_x_position = x_positions[random_x_pos_index];
+                        let jb = {'x':random_x_position, 'y': 4, 'z': z_pos, 'type': "jump_boost"};
+                        current.push(jb);
+                        // console.log("jump_boost created!")
+                     }
+
                     this.tree_stumps.push(current);
                     // console.log(this.tree_stumps); 
                 }    
 
                 generate_all_stump_coordinates(){
                     this.tree_stumps = [];
-                    for (let i = -15; i>=-225; i-=15){
+                    for (let i = -this.TREE_SPACING; i>= (-15*this.TREE_SPACING); i-=this.TREE_SPACING){
                         this.gen_row_boxes(i); 
                     }
                 }
@@ -137,15 +160,18 @@
                     this.runner_target_position = Mat4.identity();
                     this.runner_interpolate_count = 0;
                     this.runner_position_x = 0;
+                    this.runner_position_y = 0;
                     this.runner_lane = 0;
                     this.current_z = -10;
-                    this.next_z = -225;
-                    this.speed = 0.3; 
+                    this.next_z = -15 * this.TREE_SPACING;
 
                     this.paused = false; 
                     this.alive = true;
                     this.started = true;
                     this.over = false;
+                    this.speed = this.INITIAL_SPEED;
+                    this.GRAVITY = -5.8;
+                    this.jump_timer = Infinity;
                 }
 
                 pause_game(){
@@ -159,6 +185,14 @@
                     this.alive = false;
                     this.started = false;
 
+                }
+
+                jump(){
+                    //if not already jumping and not paused.
+                    if (this.isJumping == false && !this.paused && this.alive){
+                        this.isJumping = true;
+                        // console.log("Jumped!");
+                    }
                 }
 
                 //if power up, dont end game yet.
@@ -176,7 +210,10 @@
                     this.key_triggered_button("roate camera 1", ["1"], () => this.rotate_camera_1());
                     this.key_triggered_button("top view", ["2"], () => this.rotate_camera_2());
                     this.key_triggered_button("Pause", ["p"], () => this.pause_game());
+                    this.key_triggered_button("Jump", [" "], () => this.jump());
                 }
+
+            
 
                 display(context, program_state) {
 
@@ -203,8 +240,6 @@
                             // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
                     
                             //person
-                            let character_transform = Mat4.identity(); 
-                            character_transform = character_transform.times(Mat4.scale(0.7,1.5,1)); 
                             this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
                             
                             if (this.paused){
@@ -227,15 +262,38 @@
                             if (!this.paused){
                                 //move right
                             if (this.runner_interpolate_count > 0) {
-                                this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
-                                this.runner_interpolate_count--;
-                                this.runner_position_x++;
+                                this.runner_position = this.runner_position.times(Mat4.translation(0.5,0,0));
+                                this.runner_interpolate_count -= 1/2;
+                                this.runner_position_x += 1/2;
                             }//move left
                             else if (this.runner_interpolate_count < 0) {
-                                this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
-                                this.runner_interpolate_count++;
-                                this.runner_position_x--;
+                                this.runner_position = this.runner_position.times(Mat4.translation(-0.5,0,0));
+                                this.runner_interpolate_count += 1/2;
+                                this.runner_position_x-= 1/2;
                             }
+                            //jump
+                            if (this.isJumping == true){
+                                //fix the jump height
+                                this.runner_position = this.runner_position.times(Mat4.translation(0,-this.runner_position_y,0));
+
+                                //check jump boost
+                                if (t > this.jump_timer){
+                                    this.GRAVITY = -5.8;
+                                    console.log("jump boost over!");
+                                }
+                                this.runner_position_y = this.GRAVITY * (this.timer ** 2) + this.JUMP_VELOCITY * this.timer;
+                                this.timer += 0.05;
+                                if (this.runner_position_y >= 0){
+                                    this.runner_position = this.runner_position.times(Mat4.translation(0,this.runner_position_y,0));
+                                }
+                                else {
+                                    this.runner_position_y = 0;
+                                    this.isJumping = false;
+                                    this.timer = 0;
+                                    //jump has finished
+                                }
+                            }
+
                     
                             //handle trees ***************
                             let tree_transform = Mat4.identity(); 
@@ -244,14 +302,14 @@
                             this.score += 0.5 * this.speed;  
                             this.current_z += this.speed; 
                     
-                            //check for new row
-                            if (this.current_z >= 16){
+                            //check for new row 
+                            if (this.current_z >= this.TREE_SPACING){
                                 this.gen_row_boxes(this.next_z);
                                 this.tree_stumps.shift();
-                                this.current_z = 0;
+                                this.current_z = -1;
                                 // console.log("removed row and genereated new!");
 
-                                this.speed+=0.01;
+                                this.speed+= this.SPEEDUP_FACTOR;
                             }
 
                             // SCORE ++++++++++++++++++++++++++++++++
@@ -269,9 +327,16 @@
                             for (let i=0; i< len_stump_list ; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
                                     this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
-                                    tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
-                                    this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
-                                    //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
+                                    tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, this.tree_stumps[i][j].y, this.tree_stumps[i][j].z)); 
+
+                                    if ( this.tree_stumps[i][j].type == "stump"){
+                                       this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                                    }
+                                        
+                                    //for now, white ball
+                                    if (this.tree_stumps[i][j].type == "jump_boost"){
+                                        this.shapes.sun.draw(context,program_state, tree_transform, this.materials.sun);
+                                    }
                                     tree_transform = Mat4.identity(); 
                                 }
                             }
@@ -280,24 +345,40 @@
                             //we should only have to check the first 2 rows of tree_stumps to see if there is any overlap
                             for (let i = 0; i < 2; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
+                                    let stump1_collision_box = {};
                                     //runner hit box (need to factor in Y change during jump) TOP LEFT.
-                                    let stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': -0.025, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                    if (this.tree_stumps[i][j].type == "jump_boost"){
+                                        stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                    }
+                                    if (this.tree_stumps[i][j].type == "stump"){
+                                        stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                    }
                                     //stump_hitbox1: top left corner, dimensions
-                                    let runner_collision_box = {'x': + this.runner_position_x, 'y': 0, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
+                                    let runner_collision_box = {'x': + this.runner_position_x, 'y': this.runner_position_y, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
 
-                                //TO DRAW THE HITBOXES TOO
-                                    // let hitbox_transform = model_transform;
-                                    // hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z + 2));
-                                    // this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
+                                // TO DRAW THE HITBOXES TOO
+                                    let hitbox_transform = model_transform;
+                                    hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z + 2));
+                                    this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
                                     
-                                    // let runner_hitbox_transform = model_transform;
-                                    // runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(runner_collision_box.x, runner_collision_box.y, runner_collision_box.z));
-                                    // this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
+                                    let runner_hitbox_transform = model_transform;
+                                    runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(runner_collision_box.x, runner_collision_box.y, runner_collision_box.z));
+                                    this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
                                 
                                     if (boxesCollide3D(stump1_collision_box,runner_collision_box)){
-                                        console.log("Hit!");  
-                                        console.log("Score: ", this.score);
-                                        this.stump_collision(); //handles (ends the game for now)
+                                        if (this.tree_stumps[i][j].type == "stump"){
+                                            console.log("Hit!");  
+                                            console.log("Score: ", this.score);
+                                            this.stump_collision(); //handles (ends the game for now)   
+                                        }
+                                        if (this.tree_stumps[i][j].type == "jump_boost") {
+                                            console.log("Boost activated!");
+                                            this.GRAVITY = -3.5;
+                                            this.jump_timer = t + 15;
+                                        }   
+                                        
+                                        // if (this.tree_stumps[i][j].type == "jump_boost")
+                                        
                                     }
                                 }
                             }//end loop
