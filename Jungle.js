@@ -71,9 +71,10 @@
 
                     //GAME CONSTANT MODIFIERS:
                     this.INITIAL_SPEED = 0.3
-                    this.TREE_SPACING = 20;
+                    this.TREE_SPACING = 30;
                     this.GRAVITY = -5.8;
                     this.JUMP_VELOCITY = 10;
+                    this.SPEEDUP_FACTOR = 0.0085;
 
 
                     //speed at which the game plays
@@ -127,7 +128,7 @@
                     }
 
                     //Randomly generate a power up (jump_boost) ~ 1/20 chance
-                     if ( Math.random() > 0.5){
+                     if ( Math.random() > 0.95){
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         let random_x_position = x_positions[random_x_pos_index];
                         let jb = {'x':random_x_position, 'y': 4, 'z': z_pos, 'type': "jump_boost"};
@@ -255,14 +256,14 @@
                             if (!this.paused){
                                 //move right
                             if (this.runner_interpolate_count > 0) {
-                                this.runner_position = this.runner_position.times(Mat4.translation(1,0,0));
-                                this.runner_interpolate_count--;
-                                this.runner_position_x++;
+                                this.runner_position = this.runner_position.times(Mat4.translation(0.5,0,0));
+                                this.runner_interpolate_count -= 1/2;
+                                this.runner_position_x += 1/2;
                             }//move left
                             else if (this.runner_interpolate_count < 0) {
-                                this.runner_position = this.runner_position.times(Mat4.translation(-1,0,0));
-                                this.runner_interpolate_count++;
-                                this.runner_position_x--;
+                                this.runner_position = this.runner_position.times(Mat4.translation(-0.5,0,0));
+                                this.runner_interpolate_count += 1/2;
+                                this.runner_position_x-= 1/2;
                             }
                             //jump
                             if (this.isJumping == true){
@@ -295,14 +296,14 @@
                             this.score += this.speed;  
                             this.current_z += this.speed; 
                     
-                            //check for new row
+                            //check for new row 
                             if (this.current_z >= this.TREE_SPACING){
                                 this.gen_row_boxes(this.next_z);
                                 this.tree_stumps.shift();
-                                this.current_z = 0;
+                                this.current_z = -1;
                                 // console.log("removed row and genereated new!");
 
-                                this.speed+=0.0075;
+                                this.speed+= this.SPEEDUP_FACTOR;
                             }
                     
                             for (let i=0; i< len_stump_list ; i++){
@@ -337,14 +338,14 @@
                                     //stump_hitbox1: top left corner, dimensions
                                     let runner_collision_box = {'x': + this.runner_position_x, 'y': this.runner_position_y, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
 
-                                //TO DRAW THE HITBOXES TOO
-                                    // let hitbox_transform = model_transform;
-                                    // hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z + 2));
-                                    // this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
+                                // TO DRAW THE HITBOXES TOO
+                                    let hitbox_transform = model_transform;
+                                    hitbox_transform = hitbox_transform.times(Mat4.translation(stump1_collision_box.x, stump1_collision_box.y, stump1_collision_box.z + 2));
+                                    this.shapes.stump_hitbox1.draw(context,program_state,hitbox_transform,this.materials.sun);
                                     
-                                    // let runner_hitbox_transform = model_transform;
-                                    // runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(runner_collision_box.x, runner_collision_box.y, runner_collision_box.z));
-                                    // this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
+                                    let runner_hitbox_transform = model_transform;
+                                    runner_hitbox_transform = runner_hitbox_transform.times(Mat4.translation(runner_collision_box.x, runner_collision_box.y, runner_collision_box.z));
+                                    this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.sun);
                                 
                                     if (boxesCollide3D(stump1_collision_box,runner_collision_box)){
                                         if (this.tree_stumps[i][j].type == "stump"){
