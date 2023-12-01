@@ -241,7 +241,7 @@
                             let tree_transform = Mat4.identity(); 
                             let len_stump_list = this.tree_stumps.length;
                     
-                            this.score += this.speed;  
+                            this.score += 0.5 * this.speed;  
                             this.current_z += this.speed; 
                     
                             //check for new row
@@ -255,12 +255,16 @@
                             }
 
                             // SCORE ++++++++++++++++++++++++++++++++
+                            // set score matrix 
                             let score_transform = Mat4.identity(); 
-                            score_transform = score_transform.times(Mat4.translation(-22,9,-25)).times(Mat4.rotation(0.4,-0.1,0,0)); 
+                            score_transform = score_transform.times(Mat4.translation(-24,9,-25)).times(Mat4.rotation(0.4,-0.1,0,0)); 
+                            // turn score into single rounded integer and store correctly 
                             var score_txt = Math.trunc(this.score);
-                            this.shapes.score_text.set_string(score_txt.toString(), context.context);
+                            this.shapes.score_text.set_string("Score:" + score_txt.toString(), context.context);
+                            // draw score 
                             this.shapes.score_text.draw(context, program_state, score_transform, this.materials.text_image); 
                             
+                            console.log(this.speed); 
                     
                             for (let i=0; i< len_stump_list ; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
