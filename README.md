@@ -8,3 +8,8 @@ Hitboxes for collisions
 Power up for something else
 
 Need to check collision with player hitbox AND both stump hitboxes.
+
+
+- make rock
+- shield power up
+- click to start the game
