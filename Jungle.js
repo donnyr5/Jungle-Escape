@@ -52,12 +52,18 @@
                             texture: new Texture("assets/tree_stump_texture.jpg"),
                             ambient: 1, diffusivity: 0, specularity: 0
                         }),
+                        dirt: new Material(new Texture_Scroll_X(),
+                        {
+                            ambient: 1, diffusivity: 0.4, specularity: 0.1,
+                            texture: new Texture("assets/dirt.jpg") // a shade of brown
+                        }),
                     }
 
                     // this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
                     this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170))
                     this.landingPage_transform = Mat4.identity().times(Mat4.translation(0, -20, -100)).times(Mat4.rotation(-13 * Math.PI / 180, 1, 0, 0)).times(Mat4.scale(85,80,1));
                     this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
+                    this.floor_transform = Mat4.identity().times(Mat4.translation(0, -20, 10)).times(Mat4.rotation(5 * Math.PI / 180, 1, 0, 0)).times(Mat4.scale(25,1, 25));
 
                     this.runner_position = Mat4.identity();
                     this.runner_target_position = Mat4.identity();
@@ -188,7 +194,7 @@
                     this.paused = true; 
                     this.alive = false;
                     this.started = false;
-
+                    this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
                 }
 
                 jump(){
@@ -241,6 +247,7 @@
                         else {
             
                             this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
+                            this.shapes.cube.draw(context, program_state, this.floor_transform, this.materials.dirt);
                             // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
                     
                             //person
