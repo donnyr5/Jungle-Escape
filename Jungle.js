@@ -18,7 +18,7 @@
                     this.shapes = {
                         sun: new defs.Subdivision_Sphere(4),
                         planet_1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-                        runner: new Shape_From_File("assets/character.obj"),
+                        runner: new Shape_From_File("assets/character-2.obj"),
                         cube: new defs.Cube(3,3),
                         runner_hitbox: new RectangularPrism(.40,1,3.2),
                         stump_hitbox1: new RectangularPrism(4.2,3.4,0.75),
@@ -47,6 +47,10 @@
                         text_image: new Material(new defs.Textured_Phong(1), {
                             ambient: 1, diffusivity: 0, specularity: 0,
                             texture: new Texture("assets/text.png")
+                        }),
+                        tree_stump_texture: new Material(new defs.Textured_Phong(10), {
+                            texture: new Texture("assets/tree_stump_texture.jpg"),
+                            ambient: 1, diffusivity: 0, specularity: 0
                         }),
                     }
 
@@ -252,7 +256,7 @@
                                     for (let j =0; j < this.tree_stumps[i].length; j++){
                                         // this.tree_stumps[i][j].z += this.speed;   // NO MOVEMENT WHEN PAUSED.
                                         tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, 0, this.tree_stumps[i][j].z)); 
-                                        this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                                        this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                         //tree_transform = tree_transform.times(Mat4.translation(-this.tree_stumps[i][j].x, 0, 0)); 
                                         tree_transform = Mat4.identity(); 
                                     }
@@ -330,7 +334,7 @@
                                     tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, this.tree_stumps[i][j].y, this.tree_stumps[i][j].z)); 
 
                                     if ( this.tree_stumps[i][j].type == "stump"){
-                                       this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.plastic.override({color:hex_color('#804000')})); 
+                                       this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                     }
                                         
                                     //for now, white ball
