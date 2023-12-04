@@ -379,7 +379,7 @@
                                             this.shapes.jumpBoost.draw(context,program_state, tree_transform, this.materials.jumpBoost);
                                         }
 
-                                        if (this.tree_stumps[i][j].type == "coin" || this.tree_stumps[i][j].type == "dead_coin" ){
+                                        if (this.tree_stumps[i][j].type == "coin" ){
                                             let coin_transform = tree_transform.times(Mat4.scale(0.25,0.25,0.25));
                                             this.shapes.coin.draw(context,program_state, coin_transform, this.materials.coin);
                                         }
@@ -451,7 +451,7 @@
                                         this.shapes.jumpBoost.draw(context,program_state, tree_transform, this.materials.jumpBoost);
                                     }
 
-                                    if (this.tree_stumps[i][j].type == "coin" || this.tree_stumps[i][j].type == "dead_coin" ){
+                                    if (this.tree_stumps[i][j].type == "coin" ){
                                         let coin_transform = tree_transform.times(Mat4.scale(0.6,0.6,0.6));
                                         this.shapes.coin.draw(context,program_state, coin_transform, this.materials.coin);                                    }
 
@@ -496,12 +496,13 @@
                                         if (this.tree_stumps[i][j].type == "jump_boost") {
                                             console.log("Boost activated!");
                                             this.jump_boosts = 5;
+                                            this.tree_stumps[i][j].type = "dead"
                                         }   
 
                                         if (this.tree_stumps[i][j].type == "coin") {
                                             console.log("coin hit!!");
                                             this.score += 10  
-                                            this.tree_stumps[i][j].type = "dead_coin"
+                                            this.tree_stumps[i][j].type = "dead"
                                             //no longer handle collisions with this
                                         } 
                                     }
