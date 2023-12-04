@@ -16,10 +16,10 @@
                     const horizon_row_op = (s, p) => p ? Mat4.translation(0, .2, 0).times(p.to4(1)).to3() : vec3(-50, 0, -50);
                     const horizon_col_op = (t, p) => Mat4.translation(.2, 0, 0).times(p.to4(1)).to3();
                     this.shapes = {
-                        jumpBoost: new defs.Subdivision_Sphere(4),
+                        jumpBoost: new Shape_From_File("assets/jump_boost.obj"),
                         runner: new Shape_From_File("assets/character-2.obj"),
                         cube: new defs.Cube(3,3),
-                        coin: new defs.Subdivision_Sphere(4),
+                        coin: new Shape_From_File("assets/coin.obj"),
                         runner_hitbox: new RectangularPrism(.40,1,3.2),
                         stump_hitbox1: new RectangularPrism(4.2,3.4,0.75),
                         coin_hitbox: new RectangularPrism(1.5,1.5,0.55),
@@ -122,9 +122,6 @@
                     this.coin_hit = false;
                     this.top_score = 0;
                 }
-
-
-
 
                 rotate_camera_1(){
                     this.initial_camera_location = Mat4.look_at(vec3(0, 1, -8), vec3(0, -1, 0), vec3(0, 2, 0));
@@ -370,13 +367,14 @@
                                     for (let j =0; j < this.tree_stumps[i].length; j++){
                                       
                                         tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, this.tree_stumps[i][j].y, this.tree_stumps[i][j].z)); 
-    
+
                                         if ( this.tree_stumps[i][j].type == "stump"){
                                            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                         }
                                             
                                         if (this.tree_stumps[i][j].type == "jump_boost"){
-                                            this.shapes.jumpBoost.draw(context,program_state, tree_transform, this.materials.jumpBoost);
+                                            let jump_transform = tree_transform.times(Mat4.rotation(90 * Math.PI / 180,0,0,1));
+                                            this.shapes.jumpBoost.draw(context,program_state, jump_transform, this.materials.jumpBoost);
                                         }
 
                                         if (this.tree_stumps[i][j].type == "coin" ){
@@ -448,7 +446,8 @@
                                         
                                     //for now, white ball
                                     if (this.tree_stumps[i][j].type == "jump_boost"){
-                                        this.shapes.jumpBoost.draw(context,program_state, tree_transform, this.materials.jumpBoost);
+                                        let jump_transform = tree_transform.times(Mat4.rotation(90 * Math.PI / 180,0,0,1));
+                                        this.shapes.jumpBoost.draw(context,program_state, jump_transform, this.materials.jumpBoost);
                                     }
 
                                     if (this.tree_stumps[i][j].type == "coin" ){
