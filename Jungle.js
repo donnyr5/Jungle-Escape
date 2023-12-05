@@ -131,7 +131,7 @@
                 }
 
                 rotate_camera_2(){
-                    this.initial_camera_location = Mat4.look_at(vec3(0, 12, 1), vec3(0, 2, 0), vec3(0, 2, 0));
+                    this.initial_camera_location = Mat4.look_at(vec3(0, 12, 5), vec3(0, 2, 0), vec3(0, 2, 0));
                 }
 
                 move_left(){
@@ -446,7 +446,7 @@
                                        this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                     }
                                         
-                                    //for now, white ball
+
                                     if (this.tree_stumps[i][j].type == "jump_boost"){
                                         this.shapes.jumpBoost.draw(context,program_state, tree_transform, this.materials.jumpBoost);
                                     }
