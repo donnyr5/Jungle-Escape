@@ -16,10 +16,10 @@
                     const horizon_row_op = (s, p) => p ? Mat4.translation(0, .2, 0).times(p.to4(1)).to3() : vec3(-50, 0, -50);
                     const horizon_col_op = (t, p) => Mat4.translation(.2, 0, 0).times(p.to4(1)).to3();
                     this.shapes = {
-                        jumpBoost: new defs.Subdivision_Sphere(4),
+                        jumpBoost: new Shape_From_File("assets/jump_boost.obj"),
                         runner: new Shape_From_File("assets/character-2.obj"),
                         cube: new defs.Cube(3,3),
-                        coin: new defs.Subdivision_Sphere(4),
+                        coin: new Shape_From_File("assets/coin.obj"),
                         runner_hitbox: new RectangularPrism(.40,1,3.2),
                         stump_hitbox1: new RectangularPrism(4.2,3.4,0.75),
                         coin_hitbox: new RectangularPrism(1.5,1.5,0.55),
@@ -72,6 +72,9 @@
                     this.background_playing = false;
                     this.death_sound = new Audio("assets/death_sound.mp3");
                     this.jump_sound = new Audio("assets/jump.mp3");
+                    this.coin_sound = new Audio("assets/coin.mp3");
+                    this.jb_sound = new Audio("assets/jb.mp3");
+                    this.music_on = true;
                     
 
                     // this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
@@ -106,7 +109,7 @@
                     this.GRAVITY = -5.8;
                     this.JUMP_VELOCITY = 10;
                     this.SPEEDUP_FACTOR = 0.02;
-                    this.JUMP_BOOST_SPAWN_RATE = 0.06; //1 = 100%, 0 = 0%
+                    this.JUMP_BOOST_SPAWN_RATE = 0.6; //1 = 100%, 0 = 0%
                     this.GOLD_SPAWN_RATE = 0.2;
 
 
@@ -122,9 +125,6 @@
                     this.coin_hit = false;
                     this.top_score = 0;
                 }
-
-
-
 
                 rotate_camera_1(){
                     this.initial_camera_location = Mat4.look_at(vec3(0, 1, -8), vec3(0, -1, 0), vec3(0, 2, 0));
@@ -172,7 +172,7 @@
                      if ( Math.random() < this.JUMP_BOOST_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         let random_x_position = x_positions[random_x_pos_index];
-                        let jb = {'x':random_x_position, 'y': Math.floor(Math.random() * 3)+ 3 , 'z': z_pos, 'type': "jump_boost"};
+                        let jb = {'x':random_x_position, 'y': Math.floor(Math.random() * 2)+ 5 , 'z': z_pos, 'type': "jump_boost"};
                         current.push(jb);
                         // console.log("jump_boost created!")
                      }
@@ -217,8 +217,10 @@
                     this.coin_hit = false;
 
                     //play background music
-                    this.background_sound.play(); 
-                    this.background_playing = true;
+                    if (this.music_on) {
+                        this.background_sound.play(); 
+                        this.background_playing = true;
+                    }
 
                 }
 
@@ -227,7 +229,7 @@
                     if (this.background_playing == true){
                         this.background_sound.pause();
                     }
-                    else {
+                    else if (this.music_on) {
                         this.background_sound.play();
                     }
 
@@ -278,16 +280,26 @@
                     this.end_game();
                 }
 
+                toggle_music() {
+                    if (!this.music_on){
+                        this.background_sound.play(); 
+                    } else {
+                        this.background_sound.pause();
+                    }
+                    this.music_on = !(this.music_on);
+                }
+
 
                 make_control_panel() {
                     // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-                    this.key_triggered_button("right", ["d"], () => this.move_right());
-                    this.key_triggered_button("left", ["a"], () => this.move_left());  
-                    this.key_triggered_button("end", ["r"], () => this.end_game());
+                    this.key_triggered_button("Right", ["d"], () => this.move_right());
+                    this.key_triggered_button("Left", ["a"], () => this.move_left());  
+                    this.key_triggered_button("End Game", ["r"], () => this.end_game());
                     // this.key_triggered_button("roate camera 1", ["1"], () => this.rotate_camera_1());
                     this.key_triggered_button("top view", ["2"], () => this.rotate_camera_2());
                     this.key_triggered_button("Pause", ["p"], () => this.pause_game());
                     this.key_triggered_button("Jump", [" "], () => this.jump());
+                    this.key_triggered_button("Toggle Music", ["m"], () => this.toggle_music());
                 }
 
                 display(context, program_state) {
@@ -370,13 +382,14 @@
                                     for (let j =0; j < this.tree_stumps[i].length; j++){
                                       
                                         tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, this.tree_stumps[i][j].y, this.tree_stumps[i][j].z)); 
-    
+
                                         if ( this.tree_stumps[i][j].type == "stump"){
                                            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                         }
                                             
                                         if (this.tree_stumps[i][j].type == "jump_boost"){
-                                            this.shapes.jumpBoost.draw(context,program_state, tree_transform, this.materials.jumpBoost);
+                                            let jump_transform = tree_transform.times(Mat4.rotation(90 * Math.PI / 180,0,0,1));
+                                            this.shapes.jumpBoost.draw(context,program_state, jump_transform, this.materials.jumpBoost);
                                         }
 
                                         if (this.tree_stumps[i][j].type == "coin" ){
@@ -448,7 +461,8 @@
                                         
 
                                     if (this.tree_stumps[i][j].type == "jump_boost"){
-                                        this.shapes.jumpBoost.draw(context,program_state, tree_transform, this.materials.jumpBoost);
+                                        let jump_transform = tree_transform.times(Mat4.rotation(90 * Math.PI / 180,0,0,1));
+                                        this.shapes.jumpBoost.draw(context,program_state, jump_transform, this.materials.jumpBoost);
                                     }
 
                                     if (this.tree_stumps[i][j].type == "coin" ){
@@ -497,12 +511,14 @@
                                             console.log("Boost activated!");
                                             this.jump_boosts = 5;
                                             this.tree_stumps[i][j].type = "dead"
+                                            this.jb_sound.play();
                                         }   
 
                                         if (this.tree_stumps[i][j].type == "coin") {
                                             console.log("coin hit!!");
                                             this.score += 10  
                                             this.tree_stumps[i][j].type = "dead"
+                                            this.coin_sound.play();
                                             //no longer handle collisions with this
                                         } 
                                     }
