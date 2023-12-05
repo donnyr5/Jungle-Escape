@@ -27,6 +27,7 @@
                         tree_stump: new Shape_From_File("assets/treestump.obj"),
                         score_text: new Text_Line(50),
                         begin_text: new Text_Line(50),
+                        rock: new defs.Cube(2,2),
                     };
 
                     // *** Materials
@@ -37,7 +38,7 @@
       
                         horizon: new Material(new Texture_Scroll_X(), {
                             ambient: .6,
-                            texture: new Texture("assets/background.jpeg", "NEAREST")
+                            texture: new Texture("assets/jgggg.jpeg", "NEAREST")
                         }),
                         landingPage: new Material(new Texture_Scroll_X(), {
                             ambient: 0.8,
@@ -65,16 +66,20 @@
                             ambient: 1, diffusivity: 0.4, specularity: 0.1,
                             texture: new Texture("assets/dirt.jpg") // a shade of brown
                         }),
+                        rock: new Material(new defs.Phong_Shader(),
+                        {ambient: .4, diffusivity: .6, color: hex_color("000009")}),
                     }
 
                     //sounds
                     this.background_sound = new Audio("assets/jungle.mp3");
                     this.background_playing = false;
+                    this.music_timer = 0;
                     this.death_sound = new Audio("assets/death_sound.mp3");
                     this.jump_sound = new Audio("assets/jump.mp3");
                     this.coin_sound = new Audio("assets/coin.mp3");
                     this.jb_sound = new Audio("assets/jb.mp3");
                     this.music_on = true;
+                    this.jb_sound.play
                     
 
                     // this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
@@ -105,12 +110,12 @@
 
                     //GAME CONSTANT MODIFIERS:
                     this.INITIAL_SPEED = 0.4
-                    this.TREE_SPACING = 36;
+                    this.TREE_SPACING = 40;
                     this.GRAVITY = -5.8;
                     this.JUMP_VELOCITY = 10;
-                    this.SPEEDUP_FACTOR = 0.02;
-                    this.JUMP_BOOST_SPAWN_RATE = 0.6; //1 = 100%, 0 = 0%
-                    this.GOLD_SPAWN_RATE = 0.2;
+                    this.SPEEDUP_FACTOR = 0.04;
+                    this.JUMP_BOOST_SPAWN_RATE = 0.08; //1 = 100%, 0 = 0%
+                    this.GOLD_SPAWN_RATE = 0.5;
 
 
                     //speed at which the game plays
@@ -152,8 +157,9 @@
 
                 gen_row_boxes(z_pos) {
                     let x_positions = [-5, 0, 5]; 
+                    let x_positions_unchanged = [-5, 0, 5]; 
                     // gives either 1 or 2 so that we can render that many number of cubes 
-                    let random_num_for_stumps = Math.floor(Math.random() * 2) + 1.7;
+                    let random_num_for_stumps = Math.floor(Math.random() * 2) + 0.6;
                     let current = [];
 
                     //0-3 times
@@ -162,8 +168,16 @@
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         // picks out -5, 0, 5 from random index 
                         let random_x_position = x_positions[random_x_pos_index]; 
-                        // creates full coordinate scheme 
-                        let current_stump = {'x':random_x_position, 'y': 0, 'z': z_pos, 'type': "stump"};
+
+                        //remove from choices remaining
+                        delete(x_positions[random_x_pos_index]);
+
+                        // decides if rock
+                        let type = "stump";
+                        if (Math.random() > 0.7){
+                            type = "rock";
+                        } 
+                        let current_stump = {'x':random_x_position, 'y': 0, 'z': z_pos, 'type': type};
                         current.push(current_stump);
                         // adds coordiantes to an array 
                     }
@@ -171,7 +185,7 @@
                     //Randomly generate a power up (jump_boost) ~ 1/20 chance
                      if ( Math.random() < this.JUMP_BOOST_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3);
-                        let random_x_position = x_positions[random_x_pos_index];
+                        let random_x_position = x_positions_unchanged[random_x_pos_index];
                         let jb = {'x':random_x_position, 'y': Math.floor(Math.random() * 2)+ 5 , 'z': z_pos, 'type': "jump_boost"};
                         current.push(jb);
                         // console.log("jump_boost created!")
@@ -179,7 +193,7 @@
 
                      if (Math.random() < this.GOLD_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3);
-                        let random_x_position = x_positions[random_x_pos_index];
+                        let random_x_position = x_positions_unchanged[random_x_pos_index];
                         let gold = {'x':random_x_position, 'y': Math.floor(Math.random() * 3)+ 3, 'z': z_pos, 'type': "coin"};
                         current.push(gold);
                      }
@@ -219,6 +233,7 @@
                     //play background music
                     if (this.music_on) {
                         this.background_sound.play(); 
+                        this.background_sound.loop = true;
                         this.background_playing = true;
                     }
 
@@ -376,22 +391,20 @@
                                 let tree_transform = Mat4.identity(); 
                                 let len_stump_list = this.tree_stumps.length;
                                 
-
-                                //show objects
+                    //---------------------------- Display stumps while paused-------------------------------------
                                 for (let i=0; i< len_stump_list ; i++){
                                     for (let j =0; j < this.tree_stumps[i].length; j++){
-                                      
                                         tree_transform = tree_transform.times(Mat4.translation(this.tree_stumps[i][j].x, this.tree_stumps[i][j].y, this.tree_stumps[i][j].z)); 
-
                                         if ( this.tree_stumps[i][j].type == "stump"){
                                            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                         }
-                                            
+                                        if ( this.tree_stumps[i][j].type == "rock"){
+                                            this.shapes.rock.draw(context, program_state, tree_transform, this.materials.rock); 
+                                         }
                                         if (this.tree_stumps[i][j].type == "jump_boost"){
                                             let jump_transform = tree_transform.times(Mat4.rotation(90 * Math.PI / 180,0,0,1));
                                             this.shapes.jumpBoost.draw(context,program_state, jump_transform, this.materials.jumpBoost);
                                         }
-
                                         if (this.tree_stumps[i][j].type == "coin" ){
                                             let coin_transform = tree_transform.times(Mat4.scale(0.25,0.25,0.25));
                                             this.shapes.coin.draw(context,program_state, coin_transform, this.materials.coin);
@@ -449,7 +462,7 @@
                                 this.speed+= this.SPEEDUP_FACTOR;
                             }
 
-                    
+                    //---------------------------- Display stumps while moving-------------------------------------
                             for (let i=0; i< len_stump_list ; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
                                     this.tree_stumps[i][j].z += this.speed;   // 0.1 toward runner
@@ -458,8 +471,11 @@
                                     if ( this.tree_stumps[i][j].type == "stump"){
                                        this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                     }
-                                        
 
+                                    if ( this.tree_stumps[i][j].type == "rock"){
+                                        this.shapes.rock.draw(context, program_state, tree_transform, this.materials.rock); 
+                                     }
+                                        
                                     if (this.tree_stumps[i][j].type == "jump_boost"){
                                         let jump_transform = tree_transform.times(Mat4.rotation(90 * Math.PI / 180,0,0,1));
                                         this.shapes.jumpBoost.draw(context,program_state, jump_transform, this.materials.jumpBoost);
@@ -482,7 +498,7 @@
                                     if (this.tree_stumps[i][j].type == "jump_boost"){
                                         stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
                                     }
-                                    if (this.tree_stumps[i][j].type == "stump"){
+                                    if (this.tree_stumps[i][j].type == "stump" || this.tree_stumps[i][j].type == "rock"){
                                         stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
                                     }
 
@@ -502,7 +518,7 @@
                                     // this.shapes.runner_hitbox.draw(context,program_state,runner_hitbox_transform,this.materials.jumpBoost);
 
                                     if (boxesCollide3D(stump1_collision_box,runner_collision_box)){
-                                        if (this.tree_stumps[i][j].type == "stump"){
+                                        if (this.tree_stumps[i][j].type == "stump" || this.tree_stumps[i][j].type == "rock"){
                                             console.log("Hit!");  
                                             console.log("Score: ", this.score);
                                             this.stump_collision(); //handles (ends the game for now)   
