@@ -27,7 +27,7 @@
                         tree_stump: new Shape_From_File("assets/treestump.obj"),
                         score_text: new Text_Line(50),
                         begin_text: new Text_Line(50),
-                        rock: new defs.Cube(2,2),
+                        rock: new Shape_From_File("assets/rock.obj"),
                     };
 
                     // *** Materials
@@ -66,8 +66,16 @@
                             ambient: 1, diffusivity: 0.4, specularity: 0.1,
                             texture: new Texture("assets/dirt.jpg") // a shade of brown
                         }),
-                        rock: new Material(new defs.Phong_Shader(),
-                        {ambient: .4, diffusivity: .6, color: hex_color("000009")}),
+                        rock: new Material(new defs.Textured_Phong(10),
+                        {
+                            texture: new Texture("assets/rock-texture.jpg"),
+                            ambient: 1, diffusivity: 0, specularity: 0
+                        }),
+                        path: new Material(new Texture_Scroll_X(),
+                        {
+                            ambient: 1, diffusivity: 0.4, specularity: 0.1,
+                            texture: new Texture("assets/floor.jpg")
+                        }),
                     }
 
                     //sounds
@@ -399,7 +407,8 @@
                                            this.shapes.tree_stump.draw(context, program_state, tree_transform, this.materials.tree_stump_texture); 
                                         }
                                         if ( this.tree_stumps[i][j].type == "rock"){
-                                            this.shapes.rock.draw(context, program_state, tree_transform, this.materials.rock); 
+                                            let rock_transform = tree_transform.times(Mat4.scale(1.5, 1.5, 1.5));
+                                            this.shapes.rock.draw(context, program_state, rock_transform, this.materials.rock); 
                                          }
                                         if (this.tree_stumps[i][j].type == "jump_boost"){
                                             let jump_transform = tree_transform.times(Mat4.rotation(90 * Math.PI / 180,0,0,1));
@@ -473,7 +482,8 @@
                                     }
 
                                     if ( this.tree_stumps[i][j].type == "rock"){
-                                        this.shapes.rock.draw(context, program_state, tree_transform, this.materials.rock); 
+                                        let rock_transform = tree_transform.times(Mat4.scale(1.5, 1.5, 1.5));
+                                        this.shapes.rock.draw(context, program_state, rock_transform, this.materials.rock); 
                                      }
                                         
                                     if (this.tree_stumps[i][j].type == "jump_boost"){
