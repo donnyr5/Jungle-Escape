@@ -76,6 +76,10 @@
                             ambient: 1, diffusivity: 0.4, specularity: 0.1,
                             texture: new Texture("assets/floor.jpg")
                         }),
+                        monkey_hair: new Material(new defs.Textured_Phong(10), {
+                           // texture: new Texture("assets/monkey-hair.jpg"),
+                            ambient: .4, diffusivity: .5, specularity: .2, color: hex_color("45200D")
+                        })
                     }
 
                     //sounds
@@ -376,7 +380,7 @@
                             // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
                     
                             //person
-                            this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.plastic.override({color:hex_color('#804000')})); 
+                            this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.monkey_hair); 
 
                                                         // SCORE ++++++++++++++++++++++++++++++++
                             // set score matrix 
@@ -415,7 +419,7 @@
                                             this.shapes.jumpBoost.draw(context,program_state, jump_transform, this.materials.jumpBoost);
                                         }
                                         if (this.tree_stumps[i][j].type == "coin" ){
-                                            let coin_transform = tree_transform.times(Mat4.scale(0.25,0.25,0.25));
+                                            let coin_transform = tree_transform.times(Mat4.scale(0.6,0.6,0.6));
                                             this.shapes.coin.draw(context,program_state, coin_transform, this.materials.coin);
                                         }
                                         tree_transform = Mat4.identity(); 
