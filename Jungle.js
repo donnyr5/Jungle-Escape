@@ -28,7 +28,7 @@
                         score_text: new Text_Line(50),
                         begin_text: new Text_Line(50),
                         rock: new Shape_From_File("assets/rock.obj"),
-                        invin: new Shape_From_File("assets/rock.obj"),
+                        invin: new Shape_From_File("assets/diamond.obj"),
                     };
 
                     // *** Materials
@@ -62,7 +62,7 @@
                         }),
 
                         coin: new Material(new defs.Phong_Shader(),
-                        {ambient: .4, diffusivity: .6, color: hex_color("#FFD700")}),
+                        {ambient: .6, diffusivity: .6, color: hex_color("#FFD700")}),
 
                         tree_stump_texture: new Material(new defs.Textured_Phong(10), {
                             texture: new Texture("assets/tree_stump_texture.jpg"),
@@ -89,9 +89,10 @@
                         }),
                         invin:  new Material(new defs.Textured_Phong(10),
                         {
-                            texture: new Texture("assets/rock-texture.jpg"),
-                            ambient: 1, diffusivity: 0, specularity: 0
+                            texture: new Texture("assets/diamond_texture.jpg"),
+                            ambient: .8, diffusivity: 0, specularity: 0, color: hex_color("#02198B")
                         }),
+
                     }
 
                     //sounds
