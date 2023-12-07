@@ -28,6 +28,7 @@
                         score_text: new Text_Line(50),
                         begin_text: new Text_Line(50),
                         rock: new Shape_From_File("assets/rock.obj"),
+                        invin: new Shape_From_File("assets/rock.obj"),
                     };
 
                     // *** Materials
@@ -79,7 +80,12 @@
                         monkey_hair: new Material(new defs.Textured_Phong(10), {
                            // texture: new Texture("assets/monkey-hair.jpg"),
                             ambient: .4, diffusivity: .5, specularity: .2, color: hex_color("45200D")
-                        })
+                        }),
+                        invin:  new Material(new defs.Textured_Phong(10),
+                        {
+                            texture: new Texture("assets/rock-texture.jpg"),
+                            ambient: 1, diffusivity: 0, specularity: 0
+                        }),
                     }
 
                     //sounds
@@ -100,15 +106,18 @@
                     this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
                     this.floor_transform = Mat4.identity().times(Mat4.translation(0, -20, 10)).times(Mat4.rotation(5 * Math.PI / 180, 1, 0, 0)).times(Mat4.scale(25,1, 25));
 
-                    this.runner_position = Mat4.identity();
-                    this.runner_target_position = Mat4.identity();
+                    this.runner_position = Mat4.identity().times(Mat4.translation(0,0,-3));
+                    this.runner_target_position = this.runner_position;
                     this.runner_interpolate_count = 0;
                     this.runner_lane = 0;
                     this.runner_position_x = 0;
                     this.runner_position_y = 0;
+                    this.runner_position_z = -3;
 
                     this.isJumping = false;
                     this.jump_boosts = 0;
+                    this.already_jumped = false;
+                    this.height_at = 0;
 
                     this.context = null;
                     this.program_state = null;
@@ -128,6 +137,8 @@
                     this.SPEEDUP_FACTOR = 0.04;
                     this.JUMP_BOOST_SPAWN_RATE = 0.08; //1 = 100%, 0 = 0%
                     this.GOLD_SPAWN_RATE = 0.5;
+                    this.INVINCABILITY_SPAWN_RATE = 0.5;
+
 
 
                     //speed at which the game plays
@@ -141,6 +152,7 @@
                     this.web_gl_created = false;
                     this.coin_hit = false;
                     this.top_score = 0;
+                    
                 }
 
                 rotate_camera_1(){
@@ -198,6 +210,7 @@
                      if ( Math.random() < this.JUMP_BOOST_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
+                        delete(x_positions_unchanged[random_x_pos_index]);
                         let jb = {'x':random_x_position, 'y': Math.floor(Math.random() * 2)+ 5 , 'z': z_pos, 'type': "jump_boost"};
                         current.push(jb);
                         // console.log("jump_boost created!")
@@ -206,9 +219,17 @@
                      if (Math.random() < this.GOLD_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3);
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
+                        delete(x_positions_unchanged[random_x_pos_index]);
                         let gold = {'x':random_x_position, 'y': Math.floor(Math.random() * 3)+ 3, 'z': z_pos, 'type': "coin"};
                         current.push(gold);
                      }
+
+                    if (Math.random() < this.INVINCABILITY_SPAWN_RATE){
+                        let random_x_pos_index = Math.floor(Math.random() * 3);
+                        let random_x_position = x_positions_unchanged[random_x_pos_index];
+                        let invin = {'x':random_x_position, 'y': Math.floor(Math.random() * 3)+ 3, 'z': z_pos, 'type': "invin"};
+                        current.push(invin);
+                    }
 
                     this.tree_stumps.push(current);
                     // console.log(this.tree_stumps); 
@@ -224,8 +245,8 @@
                 start_game (){ 
                     this.score = 0;
                     this.generate_all_stump_coordinates();
-                    this.runner_position = Mat4.identity();
-                    this.runner_target_position = Mat4.identity();
+                    this.runner_position = Mat4.identity().times(Mat4.translation(0,0,-3));
+                    this.runner_target_position = this.runner_position;
                     this.runner_interpolate_count = 0;
                     this.runner_position_x = 0;
                     this.runner_position_y = 0;
@@ -284,23 +305,26 @@
                 jump(){
                     //if not already jumping and not paused.
                     //must not be moving left or right as we jump.
-                    if (this.isJumping == false && !this.paused && this.alive && this.runner_interpolate_count == 0){
+                    if (!this.paused && this.alive && this.runner_interpolate_count == 0 && !this.isJumping){
                         this.isJumping = true;
                         this.jump_sound.play();
-                        
-                        //jump boost decided at jump time.
-                        if (this.jump_boosts > 0){
-                            this.GRAVITY = -3.5;
+                        console.log("Jumped.");
+
+                    }
+                    //jump boost decided at jump time.
+                       else if (this.jump_boosts > 0 && this.already_jumped == false && this.isJumping){
                             this.jump_boosts -= 1;
+                            this.already_jumped = true;
+                            this.height_at = this.runner_position_y;
+                            this.timer = 0;
+                            console.log("Jumped Again!");
                         }
-                        else {
-                            this.GRAVITY = -5.8;
-                        }
+                        
 
                         
                         // console.log("Jumped!");
                     }
-                }
+                
 
                 //if power up, dont end game yet.
                 stump_collision(){
@@ -322,8 +346,6 @@
                     this.key_triggered_button("Right", ["d"], () => this.move_right());
                     this.key_triggered_button("Left", ["a"], () => this.move_left());  
                     this.key_triggered_button("End Game", ["r"], () => this.end_game());
-                    // this.key_triggered_button("roate camera 1", ["1"], () => this.rotate_camera_1());
-                    this.key_triggered_button("top view", ["2"], () => this.rotate_camera_2());
                     this.key_triggered_button("Pause", ["p"], () => this.pause_game());
                     this.key_triggered_button("Jump", [" "], () => this.jump());
                     this.key_triggered_button("Toggle Music", ["m"], () => this.toggle_music());
@@ -422,6 +444,11 @@
                                             let coin_transform = tree_transform.times(Mat4.scale(0.6,0.6,0.6));
                                             this.shapes.coin.draw(context,program_state, coin_transform, this.materials.coin);
                                         }
+
+                                        if (this.tree_stumps[i][j].type == "invin" ){
+                                            let coin_transform = tree_transform.times(Mat4.scale(0.6,0.6,0.6));
+                                            this.shapes.invin.draw(context,program_state, coin_transform, this.materials.invin);                                    }
+    
                                         tree_transform = Mat4.identity(); 
                                     }
                                 }
@@ -443,8 +470,11 @@
                             if (this.isJumping == true){
                                 //fix the jump height
                                 this.runner_position = this.runner_position.times(Mat4.translation(0,-this.runner_position_y,0));
-
                                 this.runner_position_y = this.GRAVITY * (this.timer ** 2) + this.JUMP_VELOCITY * this.timer;
+                                if (this.already_jumped){
+                                    this.runner_position_y = this.height_at + this.GRAVITY * (this.timer ** 2) + (this.JUMP_VELOCITY - 1) * this.timer;
+                                } 
+                                
                                 this.timer += 0.05;
                                 if (this.runner_position_y >= 0){
                                     this.runner_position = this.runner_position.times(Mat4.translation(0,this.runner_position_y,0));
@@ -453,10 +483,11 @@
                                     this.runner_position_y = 0;
                                     this.isJumping = false;
                                     this.timer = 0;
+                                    this.already_jumped = false;
                                     //jump has finished
                                 }
-                            }
-
+                            } 
+                        
                     
                             //handle trees ***************
                             let tree_transform = Mat4.identity(); 
@@ -474,7 +505,6 @@
 
                                 this.speed+= this.SPEEDUP_FACTOR;
                             }
-
                     //---------------------------- Display stumps while moving-------------------------------------
                             for (let i=0; i< len_stump_list ; i++){
                                 for (let j =0; j < this.tree_stumps[i].length; j++){
@@ -497,7 +527,13 @@
 
                                     if (this.tree_stumps[i][j].type == "coin" ){
                                         let coin_transform = tree_transform.times(Mat4.scale(0.6,0.6,0.6));
-                                        this.shapes.coin.draw(context,program_state, coin_transform, this.materials.coin);                                    }
+                                        this.shapes.coin.draw(context,program_state, coin_transform, this.materials.coin);
+                                    }
+
+                                    if (this.tree_stumps[i][j].type == "invin" ){
+                                        let coin_transform = tree_transform.times(Mat4.scale(0.6,0.6,0.6));
+                                        this.shapes.invin.draw(context,program_state, coin_transform, this.materials.invin);                                    }
+
 
                                     tree_transform = Mat4.identity(); 
                                 }
@@ -510,17 +546,17 @@
                                     let stump1_collision_box = {};
                                     //runner hit box (need to factor in Y change during jump) TOP LEFT.
                                     if (this.tree_stumps[i][j].type == "jump_boost"){
-                                        stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
+                                        stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 1.5}
                                     }
                                     if (this.tree_stumps[i][j].type == "stump" || this.tree_stumps[i][j].type == "rock"){
                                         stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 2, 'width': 3.4, 'depth': 4.2,'height': 0.75}
                                     }
 
-                                    if (this.tree_stumps[i][j].type == "coin"){
+                                    if (this.tree_stumps[i][j].type == "coin" || this.tree_stumps[i][j].type == "invin"){
                                         stump1_collision_box = {'x': 0.2 + this.tree_stumps[i][j].x, 'y': this.tree_stumps[i][j].y+1.5, 'z': this.tree_stumps[i][j].z - 1, 'width': 1.5, 'depth': 1.5,'height': 0.55}
                                     }
                                     //stump_hitbox1: top left corner, dimensions
-                                    let runner_collision_box = {'x': + this.runner_position_x, 'y': this.runner_position_y, 'z': 0, 'width': 1, 'depth': 0.4,'height': 4.2}
+                                    let runner_collision_box = {'x': + this.runner_position_x, 'y': this.runner_position_y, 'z': this.runner_position_z, 'width': 1, 'depth': 0.4,'height': 4.2}
 
                                 // TO DRAW THE HITBOXES TOO
                                     // let hitbox_transform = model_transform;
@@ -539,7 +575,7 @@
                                         }
                                         if (this.tree_stumps[i][j].type == "jump_boost") {
                                             console.log("Boost activated!");
-                                            this.jump_boosts = 5;
+                                            this.jump_boosts += 5;
                                             this.tree_stumps[i][j].type = "dead"
                                             this.jb_sound.play();
                                         }   
@@ -549,6 +585,14 @@
                                             this.score += 10  
                                             this.tree_stumps[i][j].type = "dead"
                                             this.coin_sound.play();
+                                            //no longer handle collisions with this
+                                        } 
+
+                                        if (this.tree_stumps[i][j].type == "invin") {
+                                            console.log("invin hit!!");
+                                            //handle invincibility here
+                                            this.tree_stumps[i][j].type = "dead"
+                                            // this.coin_sound.play();
                                             //no longer handle collisions with this
                                         } 
                                     }
