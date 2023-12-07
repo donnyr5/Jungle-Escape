@@ -47,6 +47,12 @@
                             specularity: 1,
                             texture: new Texture("assets/jungle-2.jpg", "NEAREST")
                         }),
+                        youdied: new Material(new Texture_Scroll_X(), {
+                            ambient: 0.8,
+                            diffusivity: 0.3,
+                            specularity: 1,
+                            texture: new Texture("assets/youdied.png", "NEAREST")
+                        }),
                         plastic: new Material(new defs.Phong_Shader(),
                         {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
 
@@ -126,7 +132,7 @@
 
                     this.paused = true;
                     this.score = 0;
-                    this.alive = false;
+                    this.alive = true;
                     this.over = false;
 
                     //GAME CONSTANT MODIFIERS:
@@ -351,6 +357,14 @@
                     this.key_triggered_button("Toggle Music", ["m"], () => this.toggle_music());
                 }
 
+                delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+                async death_screen(context, program_state){
+                    this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.youdied);
+                    await this.delay(3000);
+                    this.alive = true;
+                }   
+
                 display(context, program_state) {
 
                     // display():  Called once per frame of animation.
@@ -367,7 +381,11 @@
                     const t = program_state.animation_time / 1000;
                     let model_transform = Mat4.identity();
 
-                        if (!this.started){
+                        if (!this.alive && !this.started){
+                            console.log('dead');
+                            this.death_screen(context, program_state);
+                        }
+                        else if (!this.started){
                             this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.landingPage);
                         
                             //just creates the click event once.
