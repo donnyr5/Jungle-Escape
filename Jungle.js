@@ -361,7 +361,7 @@
 
                 async death_screen(context, program_state){
                     this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.youdied);
-                    await this.delay(3000);
+                    await this.delay(1800);
                     this.alive = true;
                 }   
 
