@@ -85,7 +85,7 @@
                         }),
                         monkey_hair: new Material(new defs.Textured_Phong(10), {
                            // texture: new Texture("assets/monkey-hair.jpg"),
-                            ambient: .4, diffusivity: .5, specularity: .2, color: hex_color("45200D")
+                            ambient: .4, diffusivity: .5, specularity: .2, color: hex_color("A67B5B")
                         }),
                         invin:  new Material(new defs.Textured_Phong(10),
                         {
@@ -148,9 +148,7 @@
                     this.SPEEDUP_FACTOR = 0.04;
                     this.JUMP_BOOST_SPAWN_RATE = 0.08; //1 = 100%, 0 = 0%
                     this.GOLD_SPAWN_RATE = 0.5;
-                    this.INVINCABILITY_SPAWN_RATE = 0.5;
-
-
+                    this.INVINCABILITY_SPAWN_RATE = 0.1;
 
                     //speed at which the game plays
                     this.speed = this.INITIAL_SPEED;
@@ -219,7 +217,7 @@
 
                     //Randomly generate a power up (jump_boost) ~ 1/20 chance
                      if ( Math.random() < this.JUMP_BOOST_SPAWN_RATE){
-                        let random_x_pos_index = Math.floor(Math.random() * 3);
+                        let random_x_pos_index = Math.floor(Math.random() * 3) + 2;
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
                         delete(x_positions_unchanged[random_x_pos_index]);
                         let jb = {'x':random_x_position, 'y': Math.floor(Math.random() * 2)+ 5 , 'z': z_pos, 'type': "jump_boost"};
@@ -228,7 +226,7 @@
                      }
 
                      if (Math.random() < this.GOLD_SPAWN_RATE){
-                        let random_x_pos_index = Math.floor(Math.random() * 3);
+                        let random_x_pos_index = Math.floor(Math.random() * 3) + 2;
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
                         delete(x_positions_unchanged[random_x_pos_index]);
                         let gold = {'x':random_x_position, 'y': Math.floor(Math.random() * 3)+ 3, 'z': z_pos, 'type': "coin"};
@@ -236,7 +234,7 @@
                      }
 
                     if (Math.random() < this.INVINCABILITY_SPAWN_RATE){
-                        let random_x_pos_index = Math.floor(Math.random() * 3);
+                        let random_x_pos_index = Math.floor(Math.random() * 3) + 2;
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
                         let invin = {'x':random_x_position, 'y': Math.floor(Math.random() * 3)+ 3, 'z': z_pos, 'type': "invin"};
                         current.push(invin);
@@ -303,8 +301,7 @@
                         //add however much ahead it was back.
                         this.invin_timer = this.clock + this.invin_pause_time
                     }
-        
-                    
+    
                 }
 
                 end_game(){
@@ -462,7 +459,7 @@
    
                                 if (sec > 0){
                             let timee = Math.trunc(sec);
-                            let invin_transform = jb_transform.times(Mat4.translation(-4,-2.5,0));
+                            let invin_transform = jb_transform.times(Mat4.translation(-2.8,-2.5,0));
                             //display it right below jump boosts.
                             this.shapes.score_text.set_string("Invincibility:" + timee.toString(), context.context);
                             this.shapes.score_text.draw(context, program_state, invin_transform, this.materials.text_image); 
@@ -563,7 +560,6 @@
                                 else{
                                     this.speed+= this.SPEEDUP_FACTOR*0.15;
                                 }
-
 
                                 // console.log(this.speed)
 
