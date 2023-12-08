@@ -146,9 +146,9 @@
                     this.GRAVITY = -5.8;
                     this.JUMP_VELOCITY = 10;
                     this.SPEEDUP_FACTOR = 0.04;
-                    this.JUMP_BOOST_SPAWN_RATE = 0.08; //1 = 100%, 0 = 0%
+                    this.JUMP_BOOST_SPAWN_RATE = 0.15; //1 = 100%, 0 = 0%
                     this.GOLD_SPAWN_RATE = 0.5;
-                    this.INVINCABILITY_SPAWN_RATE = 0.1;
+                    this.INVINCABILITY_SPAWN_RATE = 0.15;
 
                     //speed at which the game plays
                     this.speed = this.INITIAL_SPEED;
