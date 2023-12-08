@@ -28,7 +28,7 @@
                         score_text: new Text_Line(50),
                         begin_text: new Text_Line(50),
                         rock: new Shape_From_File("assets/rock.obj"),
-                        invin: new Shape_From_File("assets/rock.obj"),
+                        invin: new Shape_From_File("assets/diamond.obj"),
                     };
 
                     // *** Materials
@@ -62,7 +62,7 @@
                         }),
 
                         coin: new Material(new defs.Phong_Shader(),
-                        {ambient: .4, diffusivity: .6, color: hex_color("#FFD700")}),
+                        {ambient: .6, diffusivity: .6, color: hex_color("#FFD700")}),
 
                         tree_stump_texture: new Material(new defs.Textured_Phong(10), {
                             texture: new Texture("assets/tree_stump_texture.jpg"),
@@ -89,9 +89,10 @@
                         }),
                         invin:  new Material(new defs.Textured_Phong(10),
                         {
-                            texture: new Texture("assets/rock-texture.jpg"),
-                            ambient: 1, diffusivity: 0, specularity: 0
+                            texture: new Texture("assets/diamond_texture.jpg"),
+                            ambient: .8, diffusivity: 0, specularity: 0, color: hex_color("#02198B")
                         }),
+
                     }
 
                     //sounds
@@ -102,6 +103,7 @@
                     this.jump_sound = new Audio("assets/jump.mp3");
                     this.coin_sound = new Audio("assets/coin.mp3");
                     this.jb_sound = new Audio("assets/jb.mp3");
+                    this.invin_sound = new Audio("assets/invin.mp3");
                     this.music_on = true;
                     this.jb_sound.play
                     
@@ -124,11 +126,14 @@
                     this.jump_boosts = 0;
                     this.already_jumped = false;
                     this.height_at = 0;
+                    this.invin_timer = -1;
+                    this.invin_pause_time = 0;
 
                     this.context = null;
                     this.program_state = null;
                     this.started = false;
                     this.timer = 0;
+                    this.clock = 0;
 
                     this.paused = true;
                     this.score = 0;
@@ -289,6 +294,17 @@
 
                     //switch
                     this.background_playing = !(this.background_playing);
+
+                    if (this.paused){
+                    //make constant while paused, the difference.
+                    this.invin_pause_time = this.invin_timer - this.clock;
+                    }
+                    else {
+                        //add however much ahead it was back.
+                        this.invin_timer = this.clock + this.invin_pause_time
+                    }
+        
+                    
                 }
 
                 end_game(){
@@ -379,6 +395,7 @@
                     program_state.projection_transform = Mat4.perspective(
                         Math.PI / 4, context.width / context.height, .1, 1000);
                     const t = program_state.animation_time / 1000;
+                    this.clock = t;
                     let model_transform = Mat4.identity();
 
                         if (!this.alive && !this.started){
@@ -431,13 +448,26 @@
                             this.shapes.score_text.set_string("Score:" + score_txt.toString(), context.context);
                             // draw score 
                             this.shapes.score_text.draw(context, program_state, score_transform, this.materials.text_image); 
-                            
-
                             //draw the jump boost count
-                                this.shapes.score_text.set_string("Jump Boosts:" + this.jump_boosts.toString(), context.context);
-                                let jb_transform = model_transform.times(Mat4.scale(0.25,0.25,0)).times(Mat4.translation(14,25.5,0));
-                                this.shapes.score_text.draw(context, program_state, jb_transform, this.materials.text_image);
+                            this.shapes.score_text.set_string("Jump Boosts:" + this.jump_boosts.toString(), context.context);
+                            let jb_transform = model_transform.times(Mat4.scale(0.25,0.25,0)).times(Mat4.translation(14,25.5,0));
+                            this.shapes.score_text.draw(context, program_state, jb_transform, this.materials.text_image);
+
                             
+                            let sec = (this.invin_timer - t);
+
+                            if (this.paused){
+                                sec = this.invin_pause_time;
+                            }
+   
+                                if (sec > 0){
+                            let timee = Math.trunc(sec);
+                            let invin_transform = jb_transform.times(Mat4.translation(-4,-2.5,0));
+                            //display it right below jump boosts.
+                            this.shapes.score_text.set_string("Invincibility:" + timee.toString(), context.context);
+                            this.shapes.score_text.draw(context, program_state, invin_transform, this.materials.text_image); 
+                                }
+                             
                             if (this.paused){
                                 //paused screen
                                 let tree_transform = Mat4.identity(); 
@@ -520,8 +550,23 @@
                                 this.tree_stumps.shift();
                                 this.current_z = -1;
                                 // console.log("removed row and genereated new!");
+                                
+                                if (this.speed < 0.70){
+                                    this.speed+= this.SPEEDUP_FACTOR;
+                                }
+                                else if (this.speed < 1.00){
+                                    this.speed+= this.SPEEDUP_FACTOR*0.55;
+                                }
+                                else if (this.speed < 1.50){
+                                    this.speed+= this.SPEEDUP_FACTOR*0.25;
+                                }
+                                else{
+                                    this.speed+= this.SPEEDUP_FACTOR*0.15;
+                                }
 
-                                this.speed+= this.SPEEDUP_FACTOR;
+
+                                // console.log(this.speed)
+
                             }
                     //---------------------------- Display stumps while moving-------------------------------------
                             for (let i=0; i< len_stump_list ; i++){
@@ -587,9 +632,14 @@
 
                                     if (boxesCollide3D(stump1_collision_box,runner_collision_box)){
                                         if (this.tree_stumps[i][j].type == "stump" || this.tree_stumps[i][j].type == "rock"){
-                                            console.log("Hit!");  
-                                            console.log("Score: ", this.score);
-                                            this.stump_collision(); //handles (ends the game for now)   
+
+                                            //only die if we are NOT invinceble right now
+                                            if (this.invin_timer < t){
+                                                console.log("Hit!");  
+                                                console.log("Score: ", this.score);
+                                                this.stump_collision(); //handles (ends the game for now)  
+                                            }
+                                             
                                         }
                                         if (this.tree_stumps[i][j].type == "jump_boost") {
                                             console.log("Boost activated!");
@@ -608,7 +658,11 @@
 
                                         if (this.tree_stumps[i][j].type == "invin") {
                                             console.log("invin hit!!");
-                                            //handle invincibility here
+                                            
+                                            //8 seconds of invincebility
+                                            this.invin_timer = t + 8;
+                                            this.invin_pause_time = this.invin_timer;
+                                            this.invin_sound.play();
                                             this.tree_stumps[i][j].type = "dead"
                                             // this.coin_sound.play();
                                             //no longer handle collisions with this
