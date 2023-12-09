@@ -108,33 +108,39 @@
                     this.jb_sound.play
                     
 
-                    // this.initial_camera_location = Mat4.look_at(vec3(0, 2, 13), vec3(0, 0, 0), vec3(0, 1, 0));
                     this.horizon_transform = Mat4.identity().times(Mat4.scale(200, 130, 1)).times(Mat4.translation(0,0,-170))
                     this.landingPage_transform = Mat4.identity().times(Mat4.translation(0, -20, -100)).times(Mat4.rotation(-13 * Math.PI / 180, 1, 0, 0)).times(Mat4.scale(85,80,1));
                     this.initial_camera_location = Mat4.look_at(vec3(0, 5, 12), vec3(0, 2, 0), vec3(0, 2, 0));
                     this.floor_transform = Mat4.identity().times(Mat4.translation(0, -20, 10)).times(Mat4.rotation(5 * Math.PI / 180, 1, 0, 0)).times(Mat4.scale(25,1, 25));
 
+                    //tracks the coordinates of the runner 
                     this.runner_position = Mat4.identity().times(Mat4.translation(0,0,-3));
-                    this.runner_target_position = this.runner_position;
+                    this.runner_target_position = this.runner_position; //for interpolation
                     this.runner_interpolate_count = 0;
                     this.runner_lane = 0;
                     this.runner_position_x = 0;
                     this.runner_position_y = 0;
-                    this.runner_position_z = -3;
+                    this.runner_position_z = -3; //runner starts slightly forward 
 
+                    //handling jumping, invincibility, and coin power ups
                     this.isJumping = false;
                     this.jump_boosts = 0;
                     this.already_jumped = false;
                     this.height_at = 0;
                     this.invin_timer = -1;
                     this.invin_pause_time = 0;
+                    this.coin_hit = false;
+                    this.top_score = 0;
 
                     this.context = null;
                     this.program_state = null;
                     this.started = false;
+
+                    //used when pausing to maintain invivincibility timer
                     this.timer = 0;
                     this.clock = 0;
 
+                    //game states
                     this.paused = true;
                     this.score = 0;
                     this.alive = true;
@@ -157,21 +163,20 @@
                     this.next_z = -15 * this.TREE_SPACING
                     this.tree_stumps = []; 
 
-
+                    //for clicking
                     this.web_gl_created = false;
-                    this.coin_hit = false;
-                    this.top_score = 0;
                     
                 }
 
+                //used during development to see perspectives
                 rotate_camera_1(){
                     this.initial_camera_location = Mat4.look_at(vec3(0, 1, -8), vec3(0, -1, 0), vec3(0, 2, 0));
                 }
-
                 rotate_camera_2(){
                     this.initial_camera_location = Mat4.look_at(vec3(0, 12, 5), vec3(0, 2, 0), vec3(0, 2, 0));
                 }
 
+                //interpolation for moving left. makes sure the move is valid first.
                 move_left(){
                     if ((this.runner_lane == 0 || this.runner_lane == 1) && !this.paused && this.alive && (!this.isJumping)) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(-5,0,0));
@@ -180,6 +185,7 @@
                     }
                 
                 }
+                
                 move_right(){
                     if ((this.runner_lane == 0 || this.runner_lane == -1) && !this.paused && this.alive && (!this.isJumping)) {
                         this.runner_target_position = this.runner_target_position.times(Mat4.translation(5,0,0));
@@ -188,6 +194,7 @@
                     }
                 }
 
+                //called for each row of obstacles
                 gen_row_boxes(z_pos) {
                     let x_positions = [-5, 0, 5]; 
                     let x_positions_unchanged = [-5, 0, 5]; 
@@ -215,7 +222,7 @@
                         // adds coordiantes to an array 
                     }
 
-                    //Randomly generate a power up (jump_boost) ~ 1/20 chance
+                    //Randomly generate a power up (jump_boost)
                      if ( Math.random() < this.JUMP_BOOST_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3) + 2;
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
@@ -225,6 +232,7 @@
                         // console.log("jump_boost created!")
                      }
 
+                    //coin generation
                      if (Math.random() < this.GOLD_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3) + 2;
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
@@ -233,6 +241,7 @@
                         current.push(gold);
                      }
 
+                     //invincibility generation
                     if (Math.random() < this.INVINCABILITY_SPAWN_RATE){
                         let random_x_pos_index = Math.floor(Math.random() * 3) + 2;
                         let random_x_position = x_positions_unchanged[random_x_pos_index];
@@ -244,6 +253,7 @@
                     // console.log(this.tree_stumps); 
                 }    
 
+                //creates all obstaces and power ups
                 generate_all_stump_coordinates(){
                     this.tree_stumps = [];
                     for (let i = -this.TREE_SPACING; i>= (-15*this.TREE_SPACING); i-=this.TREE_SPACING){
@@ -314,6 +324,7 @@
                     this.death_sound.play()
                     this.jump_boosts = 0;
 
+                    //set top score
                     if (this.score > this.top_score){
                         this.top_score = this.score
                     }
@@ -338,10 +349,7 @@
                             this.timer = 0;
                             console.log("Jumped Again!");
                         }
-                        
-
-                        
-                        // console.log("Jumped!");
+                    
                     }
                 
 
@@ -350,6 +358,7 @@
                     this.end_game();
                 }
 
+                //when pressing "m"
                 toggle_music() {
                     if (!this.music_on){
                         this.background_sound.play(); 
@@ -372,6 +381,7 @@
 
                 delay = (ms) => new Promise(res => setTimeout(res, ms));
 
+                //show death screen for 1.8 seconds
                 async death_screen(context, program_state){
                     this.shapes.cube.draw(context, program_state, this.landingPage_transform, this.materials.youdied);
                     await this.delay(1800);
@@ -390,13 +400,13 @@
                         program_state.lights = [new Light(light_position, hex_color(flashlight_color), 75 )];
                     } 
                     program_state.projection_transform = Mat4.perspective(
-                        Math.PI / 4, context.width / context.height, .1, 1000);
+                    Math.PI / 4, context.width / context.height, .1, 1000);
                     const t = program_state.animation_time / 1000;
                     this.clock = t;
                     let model_transform = Mat4.identity();
 
                         if (!this.alive && !this.started){
-                            console.log('dead');
+                            // console.log('dead');
                             this.death_screen(context, program_state);
                         }
                         else if (!this.started){
@@ -406,7 +416,7 @@
                             if (!this.web_gl_created) {
                                 let web_gl = document.getElementById("main-canvas");
                                 web_gl.addEventListener('click', (e) => {
-                                console.log("clicked!");
+                                // console.log("clicked!");
                                 if (!this.started){
                                  this.start_game()   
                                 }
@@ -415,12 +425,12 @@
                                this.web_gl_created = true;
                             }
 
+                            //display text
                             this.shapes.begin_text.set_string("Click anywhere to begin!" , context.context);
                             let begin_transform = Mat4.identity().times(Mat4.scale(0.4,0.4,0)).times(Mat4.translation(-17,10,0));
                             this.shapes.begin_text.draw(context, program_state, begin_transform, this.materials.text_image); 
 
                             var high_score_txt = Math.trunc(this.top_score);
-
                             this.shapes.score_text.set_string("High Score: " + high_score_txt.toString(), context.context);
                             let high_score_transform = Mat4.identity().times(Mat4.translation(-24,9,-25)).times(Mat4.rotation(0.4,-0.1,0,0)); 
                             this.shapes.score_text.draw(context, program_state, high_score_transform, this.materials.text_image); 
@@ -428,10 +438,10 @@
 
                         } 
                         else {
-            
+                            
+                            //draw background
                             this.shapes.cube.draw(context, program_state, this.horizon_transform, this.materials.horizon);
                             this.shapes.cube.draw(context, program_state, this.floor_transform, this.materials.dirt);
-                            // this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.sun);
                     
                             //person
                             this.shapes.runner.draw(context, program_state, this.runner_position, this.materials.monkey_hair); 
@@ -450,14 +460,13 @@
                             let jb_transform = model_transform.times(Mat4.scale(0.25,0.25,0)).times(Mat4.translation(14,25.5,0));
                             this.shapes.score_text.draw(context, program_state, jb_transform, this.materials.text_image);
 
-                            
+                            //handle invincibily with conditional rendering
                             let sec = (this.invin_timer - t);
-
                             if (this.paused){
                                 sec = this.invin_pause_time;
                             }
    
-                                if (sec > 0){
+                            if (sec > 0){
                             let timee = Math.trunc(sec);
                             let invin_transform = jb_transform.times(Mat4.translation(-2.8,-2.5,0));
                             //display it right below jump boosts.
@@ -499,6 +508,7 @@
                                 }
                             }
                  
+                            // ---------------------------Playing----------------------
                             if (!this.paused){
                                 //move right
                             if (this.runner_interpolate_count > 0) {
@@ -548,6 +558,7 @@
                                 this.current_z = -1;
                                 // console.log("removed row and genereated new!");
                                 
+                                //increase game speed
                                 if (this.speed < 0.70){
                                     this.speed+= this.SPEEDUP_FACTOR;
                                 }
@@ -560,8 +571,6 @@
                                 else{
                                     this.speed+= this.SPEEDUP_FACTOR*0.15;
                                 }
-
-                                // console.log(this.speed)
 
                             }
                     //---------------------------- Display stumps while moving-------------------------------------
@@ -592,7 +601,6 @@
                                     if (this.tree_stumps[i][j].type == "invin" ){
                                         let coin_transform = tree_transform.times(Mat4.scale(0.6,0.6,0.6));
                                         this.shapes.invin.draw(context,program_state, coin_transform, this.materials.invin);                                    }
-
 
                                     tree_transform = Mat4.identity(); 
                                 }
@@ -635,7 +643,7 @@
                                                 console.log("Score: ", this.score);
                                                 this.stump_collision(); //handles (ends the game for now)  
                                             }
-                                             
+                                            
                                         }
                                         if (this.tree_stumps[i][j].type == "jump_boost") {
                                             console.log("Boost activated!");
